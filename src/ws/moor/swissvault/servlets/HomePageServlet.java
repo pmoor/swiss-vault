@@ -22,6 +22,7 @@ import com.google.inject.Singleton;
 import ws.moor.swissvault.auth.AuthHelper;
 import ws.moor.swissvault.auth.AuthenticatedUser;
 import ws.moor.swissvault.auth.UserId;
+import ws.moor.swissvault.util.UriBuilder;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -34,17 +35,20 @@ public class HomePageServlet extends HttpServlet {
 
   private final AuthHelper authHelper;
   private final Provider<Optional<UserId>> userIdProvider;
+  private final UriBuilder uriBuilder;
 
   @Inject
-  HomePageServlet(AuthHelper authHelper, @AuthenticatedUser Provider<Optional<UserId>> userIdProvider) {
+  HomePageServlet(AuthHelper authHelper, @AuthenticatedUser Provider<Optional<UserId>> userIdProvider,
+      UriBuilder uriBuilder) {
     this.userIdProvider = userIdProvider;
     this.authHelper = authHelper;
+    this.uriBuilder = uriBuilder;
   }
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     if (userIdProvider.get().isPresent()) {
-      resp.getOutputStream().println("Congratulations, you are all set-up and ready to go!");
+      resp.sendRedirect(uriBuilder.forPath("/html/main.html").toString());
     } else {
       resp.getOutputStream().println(
           String.format("<a href=\"%s\">log-in</a>", authHelper.createRedirectUri()));
