@@ -19,6 +19,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Stage;
 import com.google.inject.servlet.GuiceServletContextListener;
+import ws.moor.common.Clock;
 import ws.moor.swissvault.auth.AuthModule;
 import ws.moor.swissvault.config.ConfigurationModule;
 import ws.moor.swissvault.persistence.PersistenceModule;
@@ -37,6 +38,7 @@ public class Listener extends GuiceServletContextListener {
         new RestApiModule(),
         new PersistenceModule(),
         new HomePageModule(),
-        new AuthModule());
+        new AuthModule(),
+        new Clock.Module());
   }
 }

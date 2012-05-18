@@ -17,6 +17,9 @@ package ws.moor.swissvault.auth;
 
 import com.google.common.base.Charsets;
 import com.google.inject.Inject;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import ws.moor.common.Clock;
 import ws.moor.swissvault.config.Config;
 
 import javax.crypto.Cipher;
@@ -37,16 +40,19 @@ class AuthCookieFactory {
   private final SecretKeySpec aesKey;
   private final SecretKeySpec hmacKey;
   private final IvParameterSpec ivSpec;
+  private final Clock clock;
 
   @Inject
   AuthCookieFactory(@Config("secure_only") boolean secureOnly,
                     @Config("auth.hmac_key") SecretKeySpec hmacKey,
                     @Config("auth.aes_key") SecretKeySpec aesKey,
-                    @Config("auth.iv") IvParameterSpec iv) {
+                    @Config("auth.iv") IvParameterSpec iv,
+                    Clock clock) {
     this.secureOnly = secureOnly;
     this.aesKey = aesKey;
     this.hmacKey = hmacKey;
     this.ivSpec = iv;
+    this.clock = clock;
   }
 
   public UserId extractUserId(HttpServletRequest request) {
@@ -61,25 +67,28 @@ class AuthCookieFactory {
 
     String[] parts = decrypted.split(":");
     UserId userId = UserId.fromString(parts[0]);
-    long validUntilMs = Long.parseLong(parts[1]);
+    Instant validUntil = new Instant(Long.parseLong(parts[1]));
     byte[] actualSignature = DatatypeConverter.parseBase64Binary(parts[2]);
 
-    byte[] expectedSignature = sign(userId, validUntilMs);
+    byte[] expectedSignature = sign(userId, validUntil);
     
     if (Arrays.equals(expectedSignature, actualSignature)) {
-      return userId;
-    } else {
-      return null;
+      if (validUntil.isAfter(clock.now())) {
+        return userId;
+      }
     }
+    return null;
   }
 
   public Cookie createCookie(UserId userId) {
-    long validUntilMs = System.currentTimeMillis() + 3600 * 1000; // 1h
-    byte[] signature = sign(userId, validUntilMs);
-    String plainValue = String.format("%s:%d:%s", userId.asString(), validUntilMs, DatatypeConverter.printBase64Binary(signature));
+    Instant validUntil = clock.now().plus(Duration.standardHours(1));
+    byte[] signature = sign(userId, validUntil);
+    String plainValue = String.format("%s:%d:%s",
+        userId.asString(), validUntil.getMillis(), DatatypeConverter.printBase64Binary(signature));
     String encryptedValue = DatatypeConverter.printBase64Binary(encrypt(plainValue));
     Cookie cookie = new Cookie(COOKIE_NAME, encryptedValue);
-    cookie.setMaxAge(3600);
+    cookie.setPath("/");
+    cookie.setMaxAge(60 * 60);
     cookie.setSecure(secureOnly);
     return cookie;
   }
@@ -94,11 +103,11 @@ class AuthCookieFactory {
     }
   }
 
-  private byte[] sign(UserId userId, long validUntilMs) {
+  private byte[] sign(UserId userId, Instant validUntil) {
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       mac.init(hmacKey);
-      return mac.doFinal(String.format("%s:%d", userId.asString(), validUntilMs).getBytes(Charsets.UTF_8));
+      return mac.doFinal(String.format("%s:%d", userId.asString(), validUntil.getMillis()).getBytes(Charsets.UTF_8));
     } catch (GeneralSecurityException e) {
       throw new RuntimeException(e);
     }
