@@ -1,2 +1,5 @@
 output
 *.pyc
+SwissVault.iml
+.idea
+src/ws/moor/swissvault/config/production.properties
