@@ -1,0 +1,29 @@
+Code in third-party is covered under different licenses:
+
+appengine-java-sdk-1.6.5:
+  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.6.5.zip
+  license: Apache License 2.0
+
+closure-1819:
+  from: svn export -r 1819 http://closure-library.googlecode.com/svn/trunk/ closure-1819
+  license: Apache License 2.0
+
+closure-compiler:
+  from: http://closure-compiler.googlecode.com/files/compiler-20120430.tar.gz
+  license: Apache License 2.0
+
+crypto-js:
+  from: http://crypto-js.googlecode.com/files/Crypto-JS%20v2.5.3.zip
+  license: New BSD License
+
+google-gson-2.1:
+  from: http://google-gson.googlecode.com/files/google-gson-2.1-release.zip
+  license: Apache License 2.0
+
+guava-12.0.jar:
+  from: http://search.maven.org/remotecontent?filepath=com/google/guava/guava/12.0/guava-12.0.jar
+  license: Apache License 2.0
+
+guice-3.0:
+  from: http://google-guice.googlecode.com/files/guice-3.0.zip
+  license: Apache License 2.0
