@@ -27,3 +27,7 @@ guava-12.0.jar:
 guice-3.0:
   from: http://google-guice.googlecode.com/files/guice-3.0.zip
   license: Apache License 2.0
+
+joda-time-2.1:
+  from: http://sourceforge.net/projects/joda-time/files/joda-time/2.1/joda-time-2.1-dist.tar.gz/download
+  license: Apache License 2.0
