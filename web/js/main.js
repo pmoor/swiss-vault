@@ -16,6 +16,7 @@
 
 goog.require('goog.dom');
 goog.require('goog.ui.Dialog');
+goog.require('goog.string');
 goog.require('swissvault.crypto');
 goog.require('swissvault.Key');
 goog.require('swissvault.rest.RemoteCall');
@@ -42,6 +43,11 @@ swissvault.showKeyDialog_ = function(keys, passphraseUtf8) {
       for (var i = 0; i < secrets.length; i++) {
         domainSecrets[i] = swissvault.Secret.fromJson(secrets[i]);
       }
+      domainSecrets.sort(function(a, b) {
+        return goog.string.caseInsensitiveCompare(
+            a.getName(selectedKey), b.getName(selectedKey));
+      });
+
       new swissvault.SecretListPane(selectedKey, domainSecrets).render();
     });
 
