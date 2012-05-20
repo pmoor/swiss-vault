@@ -33,11 +33,11 @@ swissvault.SecretListPane.prototype.createDom = function() {
   var content = goog.dom.createDom('div');
   this.setElementInternal(content);
 
-  this.ul = goog.dom.createDom("ul");
+  this.ul = goog.dom.createDom("ul", "secretList");
   goog.dom.appendChild(content, this.ul);
 
   for (var i = 0; i < this.secrets.length; i++) {
-    var li = goog.dom.createDom("li");
+    var li = goog.dom.createDom("li", "secretListItem");
     goog.dom.appendChild(this.ul, li);
 
     var secret = this.secrets[i];
@@ -47,14 +47,14 @@ swissvault.SecretListPane.prototype.createDom = function() {
     this.addChild(secretPane);
   }
 
-  this.options = goog.dom.createDom("div");
-  this.new_button = goog.dom.createDom("a", null, 'new');
+  this.options = goog.dom.createDom("div", 'mainOptions');
+  this.new_button = goog.dom.createDom("a", 'button', 'new secret');
   goog.events.listen(this.new_button, goog.events.EventType.CLICK, function() {
     this.addNewSecret();
   }, false, this);
   goog.dom.appendChild(this.options, this.new_button);
 
-  this.export_button = goog.dom.createDom('a', null, 'export');
+  this.export_button = goog.dom.createDom('a', 'button', 'export data');
   goog.events.listen(this.export_button, goog.events.EventType.CLICK, function() {
     new swissvault.ExportDataDialog(this.key).show();
   }, false, this);
@@ -64,7 +64,7 @@ swissvault.SecretListPane.prototype.createDom = function() {
 };
 
 swissvault.SecretListPane.prototype.addNewSecret = function() {
-  var li = goog.dom.createDom("li");
+  var li = goog.dom.createDom("li", "secretListItem");
   goog.dom.appendChild(this.ul, li);
 
   var secretPane = new swissvault.SecretPane(this.key);

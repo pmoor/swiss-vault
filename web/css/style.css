@@ -1,0 +1,99 @@
+.secretList {
+  list-style-type: none;
+  padding-left: 0px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mainOptions {
+  width: 80%;
+  padding-top: 5px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.secretListItem {
+  background: #aaaaff;
+  margin: 5px;
+  padding: 2px;
+  border: 2px solid gray;
+}
+
+.secretTitle {
+  display: inline-block;
+}
+
+.secretName {
+  display: inline-block;
+  font-weight: bold;
+  margin: 2px 0px 2px 0px;
+}
+
+.secretDescription {
+  display: inline-block;
+  font-style: italic;
+  margin: 2px 0px 2px 10px;
+}
+
+.button {
+  font-size: 70%;
+  padding: 0px 2px;
+  margin: 0px 5px 0px 5px;
+  border: 1px solid gray;
+  text-align: center;
+  color: gray;
+  cursor: pointer;
+}
+
+.secretListItem .goog-zippy-collapsed {
+  display: inline-block;
+  margin: 5px;
+  border: 1px solid black;
+  vertical-align: middle;
+  width: 10px;
+  height: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  cursor: pointer;
+}
+
+.secretListItem .goog-zippy-expanded {
+  display: inline-block;
+  margin: 5px;
+  border: 1px solid black;
+  vertical-align: middle;
+  width: 10px;
+  height: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  cursor: pointer;
+}
+
+.secretNameEdit {
+}
+
+.secretDescriptionEdit {
+}
+
+.propertyList {
+  list-style: none;
+  padding-left: 20px;
+}
+
+.propertyListItem {
+
+}
+
+.propertyName {
+  display: inline-block;
+  font-weight: bold;
+  margin: 2px 0px 2px 0px;
+}
+
+.propertyValue {
+  display: inline-block;
+  margin: 2px 0px 2px 10px;
+}

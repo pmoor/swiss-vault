@@ -35,25 +35,25 @@ swissvault.SecretPane.prototype.decorateInternal = function(element) {
   this.header = goog.dom.createDom("div");
   goog.dom.appendChild(element, this.header);
 
-  this.toggle_button = goog.dom.createDom('a', null, 'toggle');
+  this.toggle_button = goog.dom.createDom('a', null, '+');
 
-  this.ro_fields = goog.dom.createDom('div');
-  this.ro_name = goog.dom.createDom('div');
+  this.ro_fields = goog.dom.createDom('div', 'secretTitle');
+  this.ro_name = goog.dom.createDom('div', 'secretName');
   goog.dom.appendChild(this.ro_fields, this.ro_name);
-  this.ro_description = goog.dom.createDom('div');
+  this.ro_description = goog.dom.createDom('div', 'secretDescription');
   goog.dom.appendChild(this.ro_fields, this.ro_description);
-  this.edit_button = goog.dom.createDom('a', null, 'edit');
+  this.edit_button = goog.dom.createDom('a', 'button', 'edit');
   goog.events.listen(this.edit_button, goog.events.EventType.CLICK, function() {
     this.showEditableFields();
   }, false, this);
   goog.dom.appendChild(this.ro_fields, this.edit_button);
 
-  this.rw_fields = goog.dom.createDom('div');
-  this.rw_name = goog.dom.createDom('input', {type: 'text'});
+  this.rw_fields = goog.dom.createDom('div', 'secretTitle');
+  this.rw_name = goog.dom.createDom('input', {type: 'text', 'class': 'secretName secretNameEdit'});
   goog.dom.appendChild(this.rw_fields, this.rw_name);
-  this.rw_description = goog.dom.createDom('input', {type: 'text'});
+  this.rw_description = goog.dom.createDom('input', {type: 'text', 'class': 'secretDescription secretDescriptionEdit'});
   goog.dom.appendChild(this.rw_fields, this.rw_description);
-  this.save_button = goog.dom.createDom('a', null, 'save');
+  this.save_button = goog.dom.createDom('a', 'button', 'save');
   goog.events.listen(this.save_button, goog.events.EventType.CLICK, function() {
     this.save();
   }, false, this);
@@ -62,17 +62,17 @@ swissvault.SecretPane.prototype.decorateInternal = function(element) {
   this.content = goog.dom.createDom("div");
   goog.dom.appendChild(element, this.content);
 
-  this.list = goog.dom.createDom("ul");
+  this.list = goog.dom.createDom("ul", 'propertyList');
   goog.dom.appendChild(this.content, this.list);
 
   this.options = goog.dom.createDom("div");
-  this.add_button = goog.dom.createDom("a", null, 'add');
+  this.add_button = goog.dom.createDom("a", 'button', 'add property');
   goog.events.listen(this.add_button, goog.events.EventType.CLICK, function() {
     this.createNewProperty();
   }, false, this);
   goog.dom.appendChild(this.options, this.add_button);
 
-  this.delete_button = goog.dom.createDom("a", null, 'delete');
+  this.delete_button = goog.dom.createDom("a", 'button', 'delete secret');
   goog.events.listen(this.delete_button, goog.events.EventType.CLICK, function() {
     this.deleteSecret();
   }, false, this);
@@ -135,7 +135,7 @@ swissvault.SecretPane.prototype.save = function() {
 };
 
 swissvault.SecretPane.prototype.createNewProperty = function() {
-  var li = goog.dom.createDom("li");
+  var li = goog.dom.createDom("li", 'propertyListItem');
   goog.dom.appendChild(this.list, li);
 
   var child = new swissvault.PropertyPane(this.key, this.secret);
@@ -148,6 +148,7 @@ swissvault.SecretPane.prototype.enterDocument = function() {
 
   goog.events.listen(this.zippy, goog.ui.Zippy.Events.TOGGLE, function(e) {
     if (this.zippy.isExpanded()) {
+      goog.dom.setTextContent(this.toggle_button, '-');
       var call = new swissvault.rest.RemoteCall();
       goog.events.listen(call, swissvault.rest.EventType.SUCCESS, function(e) {
         var properties = e.json;
@@ -169,6 +170,7 @@ swissvault.SecretPane.prototype.enterDocument = function() {
       }, false, this);
       call.listSecretProperties(this.key.getId(), this.secret.getId());
     } else {
+      goog.dom.setTextContent(this.toggle_button, '+');
       this.removeChildren();
       goog.dom.removeChildren(this.list);
     }

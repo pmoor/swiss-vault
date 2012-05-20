@@ -35,13 +35,13 @@ swissvault.PropertyPane.prototype.decorateInternal = function(element) {
 
   this.ro_fields = goog.dom.createDom('div');
 
-  this.ro_name = goog.dom.createDom('div');
+  this.ro_name = goog.dom.createDom('div', 'propertyName');
   goog.dom.appendChild(this.ro_fields, this.ro_name);
 
-  this.ro_value = goog.dom.createDom('div');
+  this.ro_value = goog.dom.createDom('div', 'propertyValue');
   goog.dom.appendChild(this.ro_fields, this.ro_value);
 
-  this.edit_button = goog.dom.createDom('a', null, 'edit');
+  this.edit_button = goog.dom.createDom('a', 'button', 'edit');
   goog.events.listen(this.edit_button, goog.events.EventType.CLICK, function() {
     this.edit();
   }, false, this);
@@ -49,16 +49,16 @@ swissvault.PropertyPane.prototype.decorateInternal = function(element) {
 
   this.rw_fields = goog.dom.createDom('div');
 
-  this.name = goog.dom.createDom('input', {type: 'text'});
+  this.name = goog.dom.createDom('input', {type: 'text', 'class': 'propertyName propertyNameEdit'});
   goog.dom.appendChild(this.rw_fields, this.name);
-  this.value = goog.dom.createDom('input', {type: 'text'});
+  this.value = goog.dom.createDom('input', {type: 'text', 'class': 'propertyValue propertyValueEdit'});
   goog.dom.appendChild(this.rw_fields, this.value);
-  this.save_button = goog.dom.createDom('a', null, 'save');
+  this.save_button = goog.dom.createDom('a', 'button', 'save property');
   goog.events.listen(this.save_button, goog.events.EventType.CLICK, function() {
     this.save();
   }, false, this);
   goog.dom.appendChild(this.rw_fields, this.save_button);
-  this.delete_button = goog.dom.createDom('a', null, 'delete');
+  this.delete_button = goog.dom.createDom('a', 'button', 'delete property');
   goog.events.listen(this.delete_button, goog.events.EventType.CLICK, function() {
     this.deletePrompt();
   }, false, this);
