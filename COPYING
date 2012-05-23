@@ -1,7 +1,7 @@
 Code in third-party is covered under different licenses:
 
-appengine-java-sdk-1.6.5:
-  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.6.5.zip
+appengine-java-sdk-1.6.6:
+  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.6.6.zip
   license: Apache License 2.0
 
 closure-1819:
