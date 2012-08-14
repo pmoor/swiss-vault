@@ -31,3 +31,7 @@ guice-3.0:
 joda-time-2.1:
   from: http://sourceforge.net/projects/joda-time/files/joda-time/2.1/joda-time-2.1-dist.tar.gz/download
   license: Apache License 2.0
+
+jsbn:
+  from: http://www-cs-students.stanford.edu/~tjw/jsbn/
+  license: BSD
