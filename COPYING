@@ -1,7 +1,7 @@
 Code in third-party is covered under different licenses:
 
-appengine-java-sdk-1.6.6:
-  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.6.6.zip
+appengine-java-sdk-1.7.5:
+  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.7.5.zip
   license: Apache License 2.0
 
 closure-1819:
@@ -20,8 +20,8 @@ google-gson-2.1:
   from: http://google-gson.googlecode.com/files/google-gson-2.1-release.zip
   license: Apache License 2.0
 
-guava-12.0.jar:
-  from: http://search.maven.org/remotecontent?filepath=com/google/guava/guava/12.0/guava-12.0.jar
+guava-14.0.jar:
+  from: http://search.maven.org/remotecontent?filepath=com/google/guava/guava/14.0/guava-14.0.jar
   license: Apache License 2.0
 
 guice-3.0:
