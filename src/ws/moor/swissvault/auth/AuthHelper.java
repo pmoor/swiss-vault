@@ -16,6 +16,7 @@
 package ws.moor.swissvault.auth;
 
 import com.google.appengine.api.urlfetch.*;
+import com.google.appengine.repackaged.org.joda.time.Duration;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -37,8 +38,9 @@ public class AuthHelper {
   
   private static final Logger logger = Logger.getLogger(AuthHelper.class.getName());
 
-  private final URI emailScope = URI.create("https://www.googleapis.com/auth/userinfo.email");
-  private final URI profileScope = URI.create("https://www.googleapis.com/auth/userinfo.profile");
+  private final URI plusScope = URI.create("https://www.googleapis.com/auth/plus.login");
+
+  private final Duration MAX_AUTH_AGE = Duration.standardHours(24);
   
   private final URLFetchService urlFetchService;
   private final JsonParser jsonParser;
@@ -61,9 +63,10 @@ public class AuthHelper {
     parameters.put("response_type", "code");
     parameters.put("client_id", clientId);
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
-    parameters.put("scope", emailScope.toString() + " " + profileScope.toString());
+    parameters.put("scope", plusScope.toString());
     parameters.put("approval_prompt", "auto");
-    parameters.put("max_auth_age", "7200");
+    parameters.put("max_auth_age", Long.toString(MAX_AUTH_AGE.getStandardSeconds()));
+    parameters.put("access_type", "online");
     parameters.put("state", uriBuilder.forPath("/html/main.html").toString());
     
     String query = Joiner.on('&').join(Iterables.transform(parameters.entrySet(),
