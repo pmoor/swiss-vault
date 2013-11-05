@@ -43,7 +43,8 @@ public class KeyRepository {
 
   public List<DbKey> getKeysWithUserAcl(UserId userId) {
     Query q = new Query("KeyAcl");
-    q.addFilter(DbKeyAcl.userIdProperty.getName(), Query.FilterOperator.EQUAL, userId.asString());
+    q.setFilter(new Query.FilterPredicate(
+        DbKeyAcl.userIdProperty.getName(), Query.FilterOperator.EQUAL, userId.asString()));
     q.addSort(Entity.KEY_RESERVED_PROPERTY, Query.SortDirection.ASCENDING);
     PreparedQuery pq = ds.prepare(q);
 
