@@ -21,6 +21,7 @@ import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.urlfetch.URLFetchService;
 import com.google.appengine.api.urlfetch.URLFetchServiceFactory;
 import com.google.appengine.api.users.User;
+import com.google.gson.JsonParser;
 import com.google.inject.AbstractModule;
 import com.google.inject.Key;
 import com.google.inject.Provides;
@@ -33,7 +34,7 @@ public class AppEngineModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    binder().requireExplicitBindings();
+    binder().requireAtInjectOnConstructors();
     binder().disableCircularProxies();
   }
 
@@ -64,5 +65,11 @@ public class AppEngineModule extends AbstractModule {
   @Singleton
   private URLFetchService provideUrlFetchService() {
     return URLFetchServiceFactory.getURLFetchService();
+  }
+
+  @Provides
+  @Singleton
+  private JsonParser provideJsonParser() {
+    return new JsonParser();
   }
 }

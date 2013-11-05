@@ -16,6 +16,7 @@
 package ws.moor.swissvault.rest.filters;
 
 import com.google.appengine.api.datastore.Transaction;
+import com.google.inject.Inject;
 import com.google.inject.Key;
 import ws.moor.rest.RestFilter;
 import ws.moor.rest.annotations.PostFilter;
@@ -26,6 +27,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class TransactionFilter implements RestFilter {
+
+  @Inject private TransactionFilter() {}
 
   @PostFilter
   public void post(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {

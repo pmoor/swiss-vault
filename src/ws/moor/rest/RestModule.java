@@ -37,9 +37,7 @@ import java.util.List;
 public class RestModule extends AbstractModule {
 
   @Override
-  protected void configure() {
-    bind(RestCallInvocator.class);
-  }
+  protected void configure() {}
 
   @RequestScoped
   @Provides

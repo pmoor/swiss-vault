@@ -15,21 +15,15 @@
  */
 package ws.moor.swissvault.rest;
 
-import com.google.gson.JsonParser;
 import com.google.inject.AbstractModule;
 import ws.moor.rest.RestModule;
 import ws.moor.rest.RestServletModule;
-import ws.moor.swissvault.rest.filters.AclService;
 import ws.moor.swissvault.rest.filters.AuthenticationFilter;
 import ws.moor.swissvault.rest.filters.TransactionFilter;
 
 public class RestApiModule extends AbstractModule {
   @Override
   protected void configure() {
-    bind(ParameterExtractor.class);
-    bind(JsonParser.class);
-    bind(AclService.class);
-
     install(new RestModule());
     install(new RestServletModule("/api/*") {
       @Override protected void configureActions() {

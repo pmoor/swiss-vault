@@ -22,10 +22,8 @@ import com.google.inject.servlet.GuiceServletContextListener;
 import ws.moor.common.Clock;
 import ws.moor.swissvault.auth.AuthModule;
 import ws.moor.swissvault.config.ConfigurationModule;
-import ws.moor.swissvault.persistence.PersistenceModule;
 import ws.moor.swissvault.rest.RestApiModule;
 import ws.moor.swissvault.servlets.HomePageModule;
-import ws.moor.swissvault.util.UtilModule;
 
 public class Listener extends GuiceServletContextListener {
 
@@ -34,9 +32,7 @@ public class Listener extends GuiceServletContextListener {
     return Guice.createInjector(Stage.PRODUCTION,
         new AppEngineModule(),
         new ConfigurationModule(),
-        new UtilModule(),
         new RestApiModule(),
-        new PersistenceModule(),
         new HomePageModule(),
         new AuthModule(),
         new Clock.Module());

@@ -16,6 +16,7 @@
 package ws.moor.common;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.joda.time.Instant;
 
@@ -23,6 +24,7 @@ public interface Clock {
   Instant now();
 
   static class SystemClock implements Clock {
+    @Inject private SystemClock() {}
     @Override public Instant now() {
       return new Instant(System.currentTimeMillis());
     }
