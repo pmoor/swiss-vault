@@ -16,42 +16,35 @@
 package ws.moor.swissvault.auth;
 
 import com.google.common.base.Charsets;
+import com.google.common.io.BaseEncoding;
 import com.google.inject.Inject;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import ws.moor.common.Clock;
 import ws.moor.swissvault.config.Config;
 
-import javax.crypto.Cipher;
 import javax.crypto.Mac;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.bind.DatatypeConverter;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 
 class AuthCookieFactory {
   
   private static final String COOKIE_NAME = "auth";
+  private static final Duration COOKIE_EXPIRATION = Duration.standardHours(1);
 
   private final boolean secureOnly;
-  private final SecretKeySpec aesKey;
   private final SecretKeySpec hmacKey;
-  private final IvParameterSpec ivSpec;
   private final Clock clock;
 
   @Inject
   AuthCookieFactory(@Config("secure_only") boolean secureOnly,
                     @Config("auth.hmac_key") SecretKeySpec hmacKey,
-                    @Config("auth.aes_key") SecretKeySpec aesKey,
-                    @Config("auth.iv") IvParameterSpec iv,
                     Clock clock) {
     this.secureOnly = secureOnly;
-    this.aesKey = aesKey;
     this.hmacKey = hmacKey;
-    this.ivSpec = iv;
     this.clock = clock;
   }
 
@@ -61,19 +54,14 @@ class AuthCookieFactory {
       return null;
     }
 
-    byte[] encrypted = DatatypeConverter.parseBase64Binary(cookie.getValue());
-
-    String decrypted = decrypt(encrypted);
-
-    String[] parts = decrypted.split(":");
+    String[] parts = cookie.getValue().split(":");
     UserId userId = UserId.fromString(parts[0]);
-    Instant validUntil = new Instant(Long.parseLong(parts[1]));
-    byte[] actualSignature = DatatypeConverter.parseBase64Binary(parts[2]);
+    Instant creationTime = new Instant(Long.parseLong(parts[1]));
+    byte[] actualSignature = BaseEncoding.base64().decode(parts[2]);
 
-    byte[] expectedSignature = sign(userId, validUntil);
-    
+    byte[] expectedSignature = sign(userId, creationTime);
     if (Arrays.equals(expectedSignature, actualSignature)) {
-      if (validUntil.isAfter(clock.now())) {
+      if (creationTime.plus(COOKIE_EXPIRATION).isAfter(clock.now())) {
         return userId;
       }
     }
@@ -81,43 +69,23 @@ class AuthCookieFactory {
   }
 
   public Cookie createCookie(UserId userId) {
-    Instant validUntil = clock.now().plus(Duration.standardHours(1));
-    byte[] signature = sign(userId, validUntil);
-    String plainValue = String.format("%s:%d:%s",
-        userId.asString(), validUntil.getMillis(), DatatypeConverter.printBase64Binary(signature));
-    String encryptedValue = DatatypeConverter.printBase64Binary(encrypt(plainValue));
-    Cookie cookie = new Cookie(COOKIE_NAME, encryptedValue);
+    Instant creationTime = clock.now();
+    byte[] signature = sign(userId, creationTime);
+    String value = String.format("%s:%d:%s",
+        userId.asString(), creationTime.getMillis(), BaseEncoding.base64().encode(signature));
+
+    Cookie cookie = new Cookie(COOKIE_NAME, value);
     cookie.setPath("/");
-    cookie.setMaxAge(60 * 60);
+    cookie.setMaxAge((int) COOKIE_EXPIRATION.getStandardSeconds());
     cookie.setSecure(secureOnly);
     return cookie;
   }
 
-  private byte[] encrypt(String decrypted) {
-    try {
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-      cipher.init(Cipher.ENCRYPT_MODE, aesKey, ivSpec);
-      return cipher.doFinal(decrypted.getBytes(Charsets.UTF_8));
-    } catch (GeneralSecurityException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private byte[] sign(UserId userId, Instant validUntil) {
+  private byte[] sign(UserId userId, Instant creationTime) {
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       mac.init(hmacKey);
-      return mac.doFinal(String.format("%s:%d", userId.asString(), validUntil.getMillis()).getBytes(Charsets.UTF_8));
-    } catch (GeneralSecurityException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private String decrypt(byte[] encrypted) {
-    try {
-      Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-      cipher.init(Cipher.DECRYPT_MODE, aesKey, ivSpec);
-      return new String(cipher.doFinal(encrypted), Charsets.UTF_8);
+      return mac.doFinal(String.format("%s:%d", userId.asString(), creationTime.getMillis()).getBytes(Charsets.UTF_8));
     } catch (GeneralSecurityException e) {
       throw new RuntimeException(e);
     }
