@@ -16,6 +16,7 @@
 package ws.moor.swissvault.auth;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.google.inject.Inject;
 import org.joda.time.Duration;
@@ -55,6 +56,8 @@ class AuthCookieFactory {
     }
 
     String[] parts = cookie.getValue().split(":");
+    Preconditions.checkArgument(parts.length == 3);
+
     UserId userId = UserId.fromString(parts[0]);
     Instant creationTime = new Instant(Long.parseLong(parts[1]));
     byte[] actualSignature = BaseEncoding.base64().decode(parts[2]);
