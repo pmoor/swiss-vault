@@ -24,8 +24,8 @@ guava-15.0.jar:
   from: http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar
   license: Apache License 2.0
 
-guice-3.0:
-  from: http://google-guice.googlecode.com/files/guice-3.0.zip
+guice-4.0-beta:
+  from: http://google-guice.googlecode.com/files/guice-4.0-beta.zip
   license: Apache License 2.0
 
 joda-time-2.1:
