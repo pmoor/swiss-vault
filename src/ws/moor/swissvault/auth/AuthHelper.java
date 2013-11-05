@@ -16,7 +16,6 @@
 package ws.moor.swissvault.auth;
 
 import com.google.appengine.api.urlfetch.*;
-import com.google.appengine.repackaged.org.joda.time.Duration;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -24,6 +23,7 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.inject.Inject;
+import org.joda.time.Duration;
 import ws.moor.swissvault.config.Config;
 import ws.moor.swissvault.util.UriBuilder;
 
