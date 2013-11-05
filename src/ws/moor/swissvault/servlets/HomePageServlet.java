@@ -50,8 +50,7 @@ public class HomePageServlet extends HttpServlet {
     if (userIdProvider.get().isPresent()) {
       resp.sendRedirect(uriBuilder.forPath("/html/main.html").toString());
     } else {
-      resp.getOutputStream().println(
-          String.format("<a href=\"%s\">log-in</a>", authHelper.createRedirectUri()));
+      resp.sendRedirect(authHelper.createRedirectUri().toString());
     }
   }
 }
