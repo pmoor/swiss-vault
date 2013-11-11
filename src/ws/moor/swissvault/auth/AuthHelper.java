@@ -18,12 +18,12 @@ package ws.moor.swissvault.auth;
 import com.google.appengine.api.urlfetch.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.inject.Inject;
-import org.joda.time.Duration;
 import ws.moor.swissvault.config.Config;
 import ws.moor.swissvault.util.UriBuilder;
 
@@ -32,15 +32,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class AuthHelper {
   
   private static final Logger logger = Logger.getLogger(AuthHelper.class.getName());
 
-  private final URI plusScope = URI.create("https://www.googleapis.com/auth/plus.login");
-
-  private final Duration MAX_AUTH_AGE = Duration.standardHours(24);
+  private static final URI PLUS_SCOPE = URI.create("https://www.googleapis.com/auth/plus.login");
+  private static final Set<URI> SCOPE = ImmutableSet.of(PLUS_SCOPE);
   
   private final URLFetchService urlFetchService;
   private final JsonParser jsonParser;
@@ -63,9 +63,8 @@ public class AuthHelper {
     parameters.put("response_type", "code");
     parameters.put("client_id", clientId);
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
-    parameters.put("scope", plusScope.toString());
+    parameters.put("scope", Joiner.on(" ").join(SCOPE));
     parameters.put("approval_prompt", "auto");
-    parameters.put("max_auth_age", Long.toString(MAX_AUTH_AGE.getStandardSeconds()));
     parameters.put("access_type", "online");
     parameters.put("state", uriBuilder.forPath("/html/main.html").toString());
     
@@ -107,8 +106,6 @@ public class AuthHelper {
     secondRequest.addHeader(new HTTPHeader("Authorization", String.format("Bearer %s", access_token)));
     response = urlFetchService.fetch(secondRequest);
     object = jsonParser.parse(new String(response.getContent())).getAsJsonObject();
-
-    logger.info("userinfo response: " + object.toString());
 
     return UserId.fromString(object.get("id").getAsString());
   }
