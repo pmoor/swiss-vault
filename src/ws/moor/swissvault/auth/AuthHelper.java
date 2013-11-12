@@ -18,6 +18,7 @@ package ws.moor.swissvault.auth;
 import com.google.appengine.api.urlfetch.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -28,9 +29,11 @@ import ws.moor.swissvault.config.Config;
 import ws.moor.swissvault.util.UriBuilder;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -64,19 +67,11 @@ public class AuthHelper {
     parameters.put("client_id", clientId);
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
     parameters.put("scope", Joiner.on(" ").join(SCOPE));
-    parameters.put("approval_prompt", "auto");
     parameters.put("access_type", "online");
     parameters.put("state", uriBuilder.forPath("/html/main.html").toString());
-    
-    String query = Joiner.on('&').join(Iterables.transform(parameters.entrySet(),
-        new Function<Map.Entry<String, String>, Object>() {
-      @Override public String apply(Map.Entry<String, String> parameter) {
-        return String.format("%s=%s", parameter.getKey(), parameter.getValue());
-      }
-    }));
 
     try {
-      return new URI("https", "accounts.google.com", "/o/oauth2/auth", query, null);
+      return new URI("https", "accounts.google.com", "/o/oauth2/auth", buildKeyValueString(parameters, false), null);
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException(e);
     }
@@ -91,13 +86,7 @@ public class AuthHelper {
     parameters.put("grant_type", "authorization_code");
 
     HTTPRequest fetchRequest = new HTTPRequest(new URL("https://accounts.google.com/o/oauth2/token"), HTTPMethod.POST);
-    String payload = Joiner.on('&').join(Iterables.transform(parameters.entrySet(),
-        new Function<Map.Entry<String, String>, Object>() {
-          @Override public String apply(Map.Entry<String, String> parameter) {
-            return String.format("%s=%s", parameter.getKey(), parameter.getValue());
-          }
-        }));
-    fetchRequest.setPayload(payload.getBytes());
+    fetchRequest.setPayload(buildKeyValueString(parameters, true).getBytes());
     HTTPResponse response = urlFetchService.fetch(fetchRequest);
     JsonObject object = jsonParser.parse(new String(response.getContent())).getAsJsonObject();
     String access_token = object.get("access_token").getAsString();
@@ -108,5 +97,20 @@ public class AuthHelper {
     object = jsonParser.parse(new String(response.getContent())).getAsJsonObject();
 
     return UserId.fromString(object.get("id").getAsString());
+  }
+
+  private String buildKeyValueString(Map<String, String> parameters, final boolean encode) {
+    return Joiner.on('&').join(Iterables.transform(parameters.entrySet(),
+        new Function<Map.Entry<String, String>, Object>() {
+          @Override public String apply(Map.Entry<String, String> parameter) {
+            try {
+              String key = encode ? URLEncoder.encode(parameter.getKey(), "UTF-8") : parameter.getKey();
+              String value = encode ? URLEncoder.encode(parameter.getValue(), "UTF-8") : parameter.getValue();
+              return String.format("%s=%s", key, value);
+            } catch (UnsupportedEncodingException e) {
+              throw Throwables.propagate(e);
+            }
+          }
+        }));
   }
 }
