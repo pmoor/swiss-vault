@@ -31,12 +31,44 @@ swissvault.ExportDataDialog = function(key) {
   this.setButtonSet(null);
 
   this.textarea = goog.dom.createDom("textarea", { rows: 30, cols: 80 });
-  this.data = new Array();
+  this.data = [];
+  this.secrets = [];
   this.done = false;
 
   goog.dom.appendChild(this.getContentElement(), this.textarea);
 };
 goog.inherits(swissvault.ExportDataDialog, goog.ui.Dialog);
+
+swissvault.ExportDataDialog.prototype.fetchSecretProperties_ = function() {
+  if (this.secrets.length > 0) {
+    var secret = this.secrets.pop();
+
+    var call = new swissvault.rest.RemoteCall();
+    goog.events.listen(call, swissvault.rest.EventType.SUCCESS,
+        function(secret) {
+          return function(e) {
+            var exportData = {};
+            exportData.name = secret.getName(this.key);
+            exportData.description = secret.getDescription(this.key);
+            exportData.properties = [];
+
+            for (var j = 0; j < e.json.length; j++) {
+              var property = swissvault.Property.fromJson(e.json[j]);
+              exportData.properties.push({
+                name: property.getName(this.key),
+                value: property.getValue(this.key)
+              });
+            }
+            this.data.push(exportData);
+            var printer = new goog.format.JsonPrettyPrinter();
+            goog.dom.setTextContent(this.textarea, printer.format(this.data));
+
+            this.fetchSecretProperties_();
+          }
+        }(secret), false, this);
+    call.listSecretProperties(this.key.getId(), secret.getId());
+  }
+};
 
 swissvault.ExportDataDialog.prototype.show = function() {
   this.setVisible(true);
@@ -45,33 +77,9 @@ swissvault.ExportDataDialog.prototype.show = function() {
   goog.events.listen(call, swissvault.rest.EventType.SUCCESS, function(e) {
     for (var i = 0; i < e.json.length; i++) {
       var secret = swissvault.Secret.fromJson(e.json[i]);
-
-      var call2 = new swissvault.rest.RemoteCall();
-      goog.events.listen(call2, swissvault.rest.EventType.SUCCESS, function(secret) {
-        return function(e) {
-          var exportData = {};
-          exportData.name = secret.getName(this.key);
-          exportData.description = secret.getDescription(this.key);
-          exportData.properties = new Array();
-
-          for (var j = 0; j < e.json.length; j++) {
-            var property = swissvault.Property.fromJson(e.json[j]);
-            exportData.properties.push({
-              name: property.getName(this.key),
-              value: property.getValue(this.key)
-            });
-          }
-          this.data.push(exportData);
-          if (this.done) {
-            var printer = new goog.format.JsonPrettyPrinter();
-            goog.dom.setTextContent(this.textarea, printer.format(this.data));
-          }
-        }
-      }(secret), false, this);
-      call2.listSecretProperties(this.key.getId(), secret.getId());
+      this.secrets.push(secret);
     }
-
-    this.done = true;
+    this.fetchSecretProperties_();
   }, false, this);
 
   call.listSecrets(this.key.getId());
