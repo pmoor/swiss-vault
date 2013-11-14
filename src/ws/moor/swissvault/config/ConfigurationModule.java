@@ -16,15 +16,14 @@
 package ws.moor.swissvault.config;
 
 import com.google.appengine.api.utils.SystemProperty;
+import com.google.common.io.BaseEncoding;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.util.Properties;
 
 public class ConfigurationModule extends AbstractModule {
@@ -54,29 +53,13 @@ public class ConfigurationModule extends AbstractModule {
   @Provides
   @Config("obfuscator_secret")
   private SecretKeySpec provideObfuscatorSecret(Properties properties) {
-    byte[] bytes = new BigInteger(properties.getProperty("obfuscator.secret"), 16).toByteArray();
-    return new SecretKeySpec(padToLength(bytes, 8), "Blowfish");
+    return new SecretKeySpec(parseHexKey(properties.getProperty("obfuscator.secret"), 8), "Blowfish");
   }
 
   @Provides
   @Config("auth.hmac_key")
   private SecretKeySpec provideAuthHmacKey(Properties properties) {
-    byte[] bytes = new BigInteger(properties.getProperty("auth.hmac_key"), 16).toByteArray();
-    return new SecretKeySpec(padToLength(bytes, 32), "HmacSHA256");
-  }
-
-  @Provides
-  @Config("auth.aes_key")
-  private SecretKeySpec provideAuthAesKey(Properties properties) {
-    byte[] bytes = new BigInteger(properties.getProperty("auth.aes_key"), 16).toByteArray();
-    return new SecretKeySpec(padToLength(bytes, 32), "AES");
-  }
-
-  @Provides
-  @Config("auth.iv")
-  private IvParameterSpec provideAuthIv(Properties properties) {
-    byte[] bytes = new BigInteger(properties.getProperty("auth.iv"), 16).toByteArray();
-    return new IvParameterSpec(padToLength(bytes, 16));
+    return new SecretKeySpec(parseHexKey(properties.getProperty("auth.hmac_key"), 32), "HmacSHA256");
   }
 
   @Provides
@@ -103,22 +86,11 @@ public class ConfigurationModule extends AbstractModule {
     return (String) properties.get("oauth.client_id");
   }
 
-  private byte[] padToLength(byte[] bytes, int length) {
-    byte[] response = new byte[length];
-    if (bytes.length > length + 1) {
-      throw new IllegalArgumentException("too many bytes: " + bytes.length + " vs. " + length);
-    } else if (bytes.length == length + 1) {
-      if (bytes[0] != 0) {
-        throw new IllegalArgumentException("too many bytes, and first byte not 0: " + bytes.length + " vs. " + length); 
-      } else {
-        // first byte == 0 because of sign issues
-        System.arraycopy(bytes, 1, response, 0, length);
-      }
-    } else if (bytes.length == length) {
-      System.arraycopy(bytes, 0, response, 0, length);
-    } else {
-      System.arraycopy(bytes, 0, response, length - bytes.length, bytes.length);
+  private byte[] parseHexKey(String hexValue, int expectedLength) {
+    byte[] decoded = BaseEncoding.base16().decode(hexValue.toUpperCase());
+    if (decoded.length != expectedLength) {
+      throw new IllegalArgumentException("expected key of length "+ expectedLength + ", but got " + decoded.length);
     }
-    return response;
+    return decoded;
   }
 }
