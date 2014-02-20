@@ -1,9 +1,5 @@
 Code in third-party is covered under different licenses:
 
-appengine-java-sdk-1.7.5:
-  from: http://googleappengine.googlecode.com/files/appengine-java-sdk-1.8.6.zip
-  license: Apache License 2.0
-
 closure-1819:
   from: svn export -r 1819 http://closure-library.googlecode.com/svn/trunk/ closure-1819
   license: Apache License 2.0
@@ -15,22 +11,6 @@ closure-compiler:
 crypto-js:
   from: http://crypto-js.googlecode.com/files/Crypto-JS%20v2.5.3.zip
   license: New BSD License
-
-google-gson-2.1:
-  from: http://google-gson.googlecode.com/files/google-gson-2.1-release.zip
-  license: Apache License 2.0
-
-guava-15.0.jar:
-  from: http://search.maven.org/remotecontent?filepath=com/google/guava/guava/15.0/guava-15.0.jar
-  license: Apache License 2.0
-
-guice-4.0-beta:
-  from: http://google-guice.googlecode.com/files/guice-4.0-beta.zip
-  license: Apache License 2.0
-
-joda-time-2.1:
-  from: http://sourceforge.net/projects/joda-time/files/joda-time/2.1/joda-time-2.1-dist.tar.gz/download
-  license: Apache License 2.0
 
 jsbn:
   from: http://www-cs-students.stanford.edu/~tjw/jsbn/
