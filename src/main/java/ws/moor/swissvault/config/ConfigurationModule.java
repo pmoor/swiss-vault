@@ -34,9 +34,9 @@ public class ConfigurationModule extends AbstractModule {
   @Provides
   @Singleton
   private Properties loadProperties() throws IOException {
-    String resourceName = "production.properties";
+    String resourceName = "/production.properties";
     if (SystemProperty.environment.value() == SystemProperty.Environment.Value.Development) {
-      resourceName = "development.properties";
+      resourceName = "/development.properties";
     }
     InputStream resource = ConfigurationModule.class.getResourceAsStream(resourceName);
     Properties properties = new Properties();
