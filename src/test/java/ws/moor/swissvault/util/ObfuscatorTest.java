@@ -22,7 +22,7 @@ import java.util.Random;
 
 public class ObfuscatorTest extends TestCase {
 
-  private final Random rnd = new Random();
+  private final Random rnd = new Random(7);
   private Obfuscator obfuscator;
 
   protected void setUp() throws Exception {
@@ -52,9 +52,9 @@ public class ObfuscatorTest extends TestCase {
     assertEquals("630e8401eb2613e2", obfuscator.obfuscateLong(Long.MIN_VALUE + 1));
 
     // short encryptions
-    assertEquals("12cc47e690bc3c9", obfuscator.obfuscateLong(2090197856513702069L));
-    assertEquals("b2d1e7dbd2b7c7", obfuscator.obfuscateLong(-7610100052787030355L));
-    assertEquals("bafb16f27334a", obfuscator.obfuscateLong(-6306291253572087852L));
-    assertEquals("9cec374c1381", obfuscator.obfuscateLong(-1133199824324347252L));
+    assertEquals("012cc47e690bc3c9", obfuscator.obfuscateLong(2090197856513702069L));
+    assertEquals("00b2d1e7dbd2b7c7", obfuscator.obfuscateLong(-7610100052787030355L));
+    assertEquals("000bafb16f27334a", obfuscator.obfuscateLong(-6306291253572087852L));
+    assertEquals("00009cec374c1381", obfuscator.obfuscateLong(-1133199824324347252L));
   }
 }
