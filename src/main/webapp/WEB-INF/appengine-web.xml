@@ -19,7 +19,6 @@
   <version>1</version>
   <threadsafe>true</threadsafe>
   <static-files>
-      <include path="/html/**" expiration="3h"/>
       <include path="/css/**" expiration="3h"/>
       <include path="/js/script.js" expiration="3h"/>
       <include path="/js/crypto-js/**" expiration="3h"/>

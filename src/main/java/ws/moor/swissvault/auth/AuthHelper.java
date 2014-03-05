@@ -68,7 +68,7 @@ public class AuthHelper {
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
     parameters.put("scope", Joiner.on(" ").join(SCOPE));
     parameters.put("access_type", "online");
-    parameters.put("state", uriBuilder.forPath("/html/main.html").toString());
+    parameters.put("state", uriBuilder.forPath("/").toString());
 
     try {
       return new URI("https", "accounts.google.com", "/o/oauth2/auth", buildKeyValueString(parameters, false), null);
