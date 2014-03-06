@@ -13,8 +13,8 @@
     <url>https://github.com/pmoor/swiss-vault</url>
 
     <properties>
-        <!-- App Engine version cannot contain any dots -->
-        <appengine.app.version>1-0-SNAPSHOT</appengine.app.version>
+        <!-- App Engine version cannot contain any dots nor any uppercase characters -->
+        <appengine.app.version>1-0-snapshot</appengine.app.version>
         <appengine.target.version>1.9.0</appengine.target.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
