@@ -47,6 +47,9 @@ public class HomePageServlet extends HttpServlet {
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // see rfc6797 for explanation of header
+    resp.addHeader("Strict-Transport-Security", "max-age=7776000; includeSubDomains"); // 90 days
+
     if (userIdProvider.get().isPresent()) {
       resp.setContentType("text/html");
       resp.setCharacterEncoding("utf-8");
