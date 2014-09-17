@@ -110,5 +110,12 @@
             <artifactId>guice-servlet</artifactId>
             <version>4.0-beta</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.truth</groupId>
+            <artifactId>truth</artifactId>
+            <version>0.23</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

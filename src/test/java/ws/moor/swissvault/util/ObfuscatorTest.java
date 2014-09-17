@@ -20,18 +20,27 @@ import junit.framework.TestCase;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Random;
 
+import static com.google.common.truth.Truth.assertThat;
+
 public class ObfuscatorTest extends TestCase {
 
-  private final Random rnd = new Random(7);
   private Obfuscator obfuscator;
 
   protected void setUp() throws Exception {
     super.setUp();
-    obfuscator = new Obfuscator(new SecretKeySpec(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, "Blowfish"));
+    obfuscator = new Obfuscator(new SecretKeySpec(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}, "Blowfish"));
   }
 
   public void testRandomLongs() {
-    for (int i = 0; i < 100; i++) {
+    long seed = System.currentTimeMillis();
+    System.out.printf("random seed: %d\n", seed);
+    Random rnd = new Random(seed);
+
+    byte[] key = new byte[8];
+    rnd.nextBytes(key);
+    obfuscator = new Obfuscator(new SecretKeySpec(key, "Blowfish"));
+
+    for (int i = 0; i < 1000; i++) {
       long secret = rnd.nextLong();
       String obfuscated = obfuscator.obfuscateLong(secret);
       long unobfuscated = obfuscator.unobfuscateLong(obfuscated);
@@ -42,19 +51,26 @@ public class ObfuscatorTest extends TestCase {
   }
 
   public void testSpecificLongs() {
-    assertEquals("1bfed93fc7d99b9e", obfuscator.obfuscateLong(0));
-    assertEquals("6949d135d37d9f63", obfuscator.obfuscateLong(1));
-    assertEquals("a30969c2022555c8", obfuscator.obfuscateLong(-1));
+    assertObfuscatesTo(Long.MIN_VALUE, "8e3a7a307f0ffa3c");
+    assertObfuscatesTo(Long.MIN_VALUE + 1, "630e8401eb2613e2");
 
-    assertEquals("e06d5a0d3b827a69", obfuscator.obfuscateLong(Long.MAX_VALUE - 1));
-    assertEquals("39727ae9766d1cc7", obfuscator.obfuscateLong(Long.MAX_VALUE));
-    assertEquals("8e3a7a307f0ffa3c", obfuscator.obfuscateLong(Long.MIN_VALUE));
-    assertEquals("630e8401eb2613e2", obfuscator.obfuscateLong(Long.MIN_VALUE + 1));
+    assertObfuscatesTo(-1, "a30969c2022555c8");
+    assertObfuscatesTo(0, "1bfed93fc7d99b9e");
+    assertObfuscatesTo(1, "6949d135d37d9f63");
 
-    // short encryptions
-    assertEquals("012cc47e690bc3c9", obfuscator.obfuscateLong(2090197856513702069L));
-    assertEquals("00b2d1e7dbd2b7c7", obfuscator.obfuscateLong(-7610100052787030355L));
-    assertEquals("000bafb16f27334a", obfuscator.obfuscateLong(-6306291253572087852L));
-    assertEquals("00009cec374c1381", obfuscator.obfuscateLong(-1133199824324347252L));
+    assertObfuscatesTo(Long.MAX_VALUE - 1, "e06d5a0d3b827a69");
+    assertObfuscatesTo(Long.MAX_VALUE, "39727ae9766d1cc7");
+  }
+
+  public void testShortEncryptions() {
+    assertObfuscatesTo(2090197856513702069L, "012cc47e690bc3c9");
+    assertObfuscatesTo(-7610100052787030355L, "00b2d1e7dbd2b7c7");
+    assertObfuscatesTo(-6306291253572087852L, "000bafb16f27334a");
+    assertObfuscatesTo(-1133199824324347252L, "00009cec374c1381");
+  }
+
+  private void assertObfuscatesTo(long original, String expectedObfuscation) {
+    assertThat(obfuscator.obfuscateLong(original)).isEqualTo(expectedObfuscation);
+    assertThat(obfuscator.unobfuscateLong(expectedObfuscation)).isEqualTo(original);
   }
 }
