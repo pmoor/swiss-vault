@@ -15,42 +15,34 @@
  */
 package ws.moor.swissvault.util;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Random;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public class ObfuscatorTest extends TestCase {
-
-  private Obfuscator obfuscator;
-
-  protected void setUp() throws Exception {
-    super.setUp();
-    obfuscator = new Obfuscator(new SecretKeySpec(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}, "Blowfish"));
-  }
-
-  public void testRandomLongs() {
+public class ObfuscatorTest {
+  @Test
+  public void randomLongs() {
     long seed = System.currentTimeMillis();
     System.out.printf("random seed: %d\n", seed);
     Random rnd = new Random(seed);
 
     byte[] key = new byte[8];
     rnd.nextBytes(key);
-    obfuscator = new Obfuscator(new SecretKeySpec(key, "Blowfish"));
+    Obfuscator obfuscator = new Obfuscator(new SecretKeySpec(key, "Blowfish"));
 
     for (int i = 0; i < 1000; i++) {
       long secret = rnd.nextLong();
       String obfuscated = obfuscator.obfuscateLong(secret);
       long unobfuscated = obfuscator.unobfuscateLong(obfuscated);
-      if (secret != unobfuscated) {
-        fail(String.format("mismatch: %d -> %s -> %d", secret, obfuscated, unobfuscated));
-      }
+      assertThat(unobfuscated).isEqualTo(secret);
     }
   }
 
-  public void testSpecificLongs() {
+  @Test
+  public void specificLongs() {
     assertObfuscatesTo(Long.MIN_VALUE, "8e3a7a307f0ffa3c");
     assertObfuscatesTo(Long.MIN_VALUE + 1, "630e8401eb2613e2");
 
@@ -62,7 +54,8 @@ public class ObfuscatorTest extends TestCase {
     assertObfuscatesTo(Long.MAX_VALUE, "39727ae9766d1cc7");
   }
 
-  public void testShortEncryptions() {
+  @Test
+  public void shortEncryptions() {
     assertObfuscatesTo(2090197856513702069L, "012cc47e690bc3c9");
     assertObfuscatesTo(-7610100052787030355L, "00b2d1e7dbd2b7c7");
     assertObfuscatesTo(-6306291253572087852L, "000bafb16f27334a");
@@ -70,6 +63,7 @@ public class ObfuscatorTest extends TestCase {
   }
 
   private void assertObfuscatesTo(long original, String expectedObfuscation) {
+    Obfuscator obfuscator = new Obfuscator(new SecretKeySpec(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}, "Blowfish"));
     assertThat(obfuscator.obfuscateLong(original)).isEqualTo(expectedObfuscation);
     assertThat(obfuscator.unobfuscateLong(expectedObfuscation)).isEqualTo(original);
   }
