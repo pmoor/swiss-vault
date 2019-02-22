@@ -18,10 +18,10 @@ package ws.moor.swissvault.domain;
 
 import com.google.appengine.api.datastore.Text;
 import com.google.common.collect.Lists;
+import com.google.common.io.BaseEncoding;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import javax.xml.bind.DatatypeConverter;
 import java.util.List;
 
 public class EncryptedValue {
@@ -47,9 +47,10 @@ public class EncryptedValue {
       throw new IllegalArgumentException(text.getValue());
     }
     EncryptionAlgorithm algorithm = EncryptionAlgorithm.valueOf(parts[1]);
-    byte[] iv = DatatypeConverter.parseBase64Binary(parts[2]);
-    byte[] ciphertext = DatatypeConverter.parseBase64Binary(parts[3]);
-    byte[] signature = DatatypeConverter.parseBase64Binary(parts[4]);
+
+    byte[] iv = BaseEncoding.base64().decode(parts[2]);
+    byte[] ciphertext = BaseEncoding.base64().decode(parts[3]);
+    byte[] signature = BaseEncoding.base64().decode(parts[4]);
     return new EncryptedValue(algorithm, iv, ciphertext, signature);
   }
 
@@ -57,9 +58,9 @@ public class EncryptedValue {
     StringBuilder encoded = new StringBuilder();
     encoded.append("0:");
     encoded.append(algorithm.name()).append(":");
-    encoded.append(DatatypeConverter.printBase64Binary(iv)).append(":");
-    encoded.append(DatatypeConverter.printBase64Binary(ciphertext)).append(":");
-    encoded.append(DatatypeConverter.printBase64Binary(signature));
+    encoded.append(BaseEncoding.base64().encode(iv)).append(":");
+    encoded.append(BaseEncoding.base64().encode(ciphertext)).append(":");
+    encoded.append(BaseEncoding.base64().encode(signature));
     return new Text(encoded.toString());
   }
 
@@ -67,9 +68,9 @@ public class EncryptedValue {
     JsonObject object = new JsonObject();
     object.addProperty("version", 0);
     object.addProperty("algorithm", algorithm.name());
-    object.addProperty("iv", DatatypeConverter.printBase64Binary(iv));
-    object.addProperty("ciphertext", DatatypeConverter.printBase64Binary(ciphertext));
-    object.addProperty("signature", DatatypeConverter.printBase64Binary(signature));
+    object.addProperty("iv", BaseEncoding.base64().encode(iv));
+    object.addProperty("ciphertext", BaseEncoding.base64().encode(ciphertext));
+    object.addProperty("signature", BaseEncoding.base64().encode(signature));
     return object;
   }
 
@@ -79,9 +80,9 @@ public class EncryptedValue {
       throw new IllegalArgumentException("unknown version: " + version);
     }
     EncryptionAlgorithm algorithm = EncryptionAlgorithm.valueOf(json.getAsJsonPrimitive("algorithm").getAsString());
-    byte[] iv = DatatypeConverter.parseBase64Binary(json.getAsJsonPrimitive("iv").getAsString());
-    byte[] ciphertext = DatatypeConverter.parseBase64Binary(json.getAsJsonPrimitive("ciphertext").getAsString());
-    byte[] signature = DatatypeConverter.parseBase64Binary(json.getAsJsonPrimitive("signature").getAsString());
+    byte[] iv = BaseEncoding.base64().decode(json.getAsJsonPrimitive("iv").getAsString());
+    byte[] ciphertext = BaseEncoding.base64().decode(json.getAsJsonPrimitive("ciphertext").getAsString());
+    byte[] signature = BaseEncoding.base64().decode(json.getAsJsonPrimitive("signature").getAsString());
     return new EncryptedValue(algorithm, iv, ciphertext, signature);
   }
 
