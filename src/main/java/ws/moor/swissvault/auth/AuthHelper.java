@@ -39,12 +39,12 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 public class AuthHelper {
-  
+
   private static final Logger logger = Logger.getLogger(AuthHelper.class.getName());
 
-  private static final URI PLUS_SCOPE = URI.create("https://www.googleapis.com/auth/plus.login");
-  private static final Set<URI> SCOPE = ImmutableSet.of(PLUS_SCOPE);
-  
+  private static final URI PROFILE_SCOPE = URI.create("https://www.googleapis.com/auth/userinfo.profile");
+  private static final Set<URI> SCOPES = ImmutableSet.of(PROFILE_SCOPE);
+
   private final URLFetchService urlFetchService;
   private final JsonParser jsonParser;
   private final UriBuilder uriBuilder;
@@ -66,7 +66,7 @@ public class AuthHelper {
     parameters.put("response_type", "code");
     parameters.put("client_id", clientId);
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
-    parameters.put("scope", Joiner.on(" ").join(SCOPE));
+    parameters.put("scope", Joiner.on(" ").join(SCOPES));
     parameters.put("access_type", "online");
     parameters.put("state", uriBuilder.forPath("/").toString());
 
@@ -76,7 +76,7 @@ public class AuthHelper {
       throw new IllegalArgumentException(e);
     }
   }
-  
+
   public UserId determineUserId(String code) throws IOException {
     Map<String, String> parameters = Maps.newHashMap();
     parameters.put("code", code);
