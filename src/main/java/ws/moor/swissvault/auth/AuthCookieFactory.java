@@ -19,9 +19,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.io.BaseEncoding;
 import com.google.inject.Inject;
-import org.joda.time.Duration;
-import org.joda.time.Instant;
-import ws.moor.common.Clock;
 import ws.moor.swissvault.config.Config;
 
 import javax.crypto.Mac;
@@ -29,12 +26,15 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.security.GeneralSecurityException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 
 class AuthCookieFactory {
 
   private static final String COOKIE_NAME = "auth";
-  private static final Duration COOKIE_EXPIRATION = Duration.standardHours(1);
+  private static final Duration COOKIE_EXPIRATION = Duration.ofMinutes(60);
 
   private final boolean secureOnly;
   private final SecretKeySpec hmacKey;
@@ -59,12 +59,12 @@ class AuthCookieFactory {
     Preconditions.checkArgument(parts.length == 3);
 
     UserId userId = UserId.fromString(parts[0]);
-    Instant creationTime = new Instant(Long.parseLong(parts[1]));
+    Instant creationTime = Instant.ofEpochMilli(Long.parseLong(parts[1]));
     byte[] actualSignature = BaseEncoding.base64().decode(parts[2]);
 
     byte[] expectedSignature = sign(userId, creationTime);
     if (Arrays.equals(expectedSignature, actualSignature)) {
-      if (creationTime.plus(COOKIE_EXPIRATION).isAfter(clock.now())) {
+      if (creationTime.plus(COOKIE_EXPIRATION).isAfter(clock.instant())) {
         return userId;
       }
     }
@@ -72,12 +72,12 @@ class AuthCookieFactory {
   }
 
   public String createCookieString(UserId userId) {
-    Instant creationTime = clock.now();
+    Instant creationTime = clock.instant();
     byte[] signature = sign(userId, creationTime);
     String value = String.format("%s:%d:%s",
-        userId.asString(), creationTime.getMillis(), BaseEncoding.base64().encode(signature));
+        userId.asString(), creationTime.toEpochMilli(), BaseEncoding.base64().encode(signature));
 
-    String string = String.format("%s=%s; Max-Age=%d; HttpOnly; SameSite=Strict", COOKIE_NAME, value, COOKIE_EXPIRATION.getStandardSeconds());
+    String string = String.format("%s=%s; Max-Age=%d; HttpOnly; SameSite=Strict", COOKIE_NAME, value, COOKIE_EXPIRATION.getSeconds());
     if (secureOnly) {
       string += "; Secure";
     }
@@ -88,7 +88,7 @@ class AuthCookieFactory {
     try {
       Mac mac = Mac.getInstance("HmacSHA256");
       mac.init(hmacKey);
-      return mac.doFinal(String.format("%s:%d", userId.asString(), creationTime.getMillis()).getBytes(Charsets.UTF_8));
+      return mac.doFinal(String.format("%s:%d", userId.asString(), creationTime.toEpochMilli()).getBytes(Charsets.UTF_8));
     } catch (GeneralSecurityException e) {
       throw new RuntimeException(e);
     }

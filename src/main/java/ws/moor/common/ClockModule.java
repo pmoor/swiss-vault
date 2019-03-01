@@ -16,23 +16,12 @@
 package ws.moor.common;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import org.joda.time.Instant;
 
-public interface Clock {
-  Instant now();
+import java.time.Clock;
 
-  static class SystemClock implements Clock {
-    @Inject private SystemClock() {}
-    @Override public Instant now() {
-      return new Instant(System.currentTimeMillis());
-    }
-  }
+public class ClockModule extends AbstractModule {
 
-  static class Module extends AbstractModule {
-    @Override protected void configure() {
-      bind(Clock.class).to(SystemClock.class).in(Singleton.class);
-    }
+  @Override protected void configure() {
+    bind(Clock.class).toInstance(Clock.systemUTC());
   }
 }
