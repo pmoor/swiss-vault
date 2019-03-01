@@ -17,6 +17,8 @@ package ws.moor.swissvault.servlets;
 
 import com.google.common.base.Optional;
 import com.google.common.io.Resources;
+import com.google.common.net.HttpHeaders;
+import com.google.common.net.MediaType;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
@@ -24,12 +26,13 @@ import ws.moor.swissvault.auth.AuthHelper;
 import ws.moor.swissvault.auth.AuthenticatedUser;
 import ws.moor.swissvault.auth.UserId;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URL;
+
+import static com.google.common.base.Charsets.UTF_8;
 
 @Singleton
 public class HomePageServlet extends HttpServlet {
@@ -46,13 +49,13 @@ public class HomePageServlet extends HttpServlet {
   }
 
   @Override
-  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     // see rfc6797 for explanation of header
-    resp.addHeader("Strict-Transport-Security", "max-age=7776000; includeSubDomains"); // 90 days
+    resp.addHeader(HttpHeaders.STRICT_TRANSPORT_SECURITY, "max-age=7776000; includeSubDomains");  // 90 days
 
     if (userIdProvider.get().isPresent()) {
-      resp.setContentType("text/html");
-      resp.setCharacterEncoding("utf-8");
+      resp.setContentType(MediaType.HTML_UTF_8.toString());
+      resp.setCharacterEncoding(UTF_8.name().toLowerCase());
       Resources.copy(mainPageResourceUrl, resp.getOutputStream());
     } else {
       resp.sendRedirect(authHelper.createRedirectUri().toString());

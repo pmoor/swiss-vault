@@ -15,10 +15,10 @@
  */
 package ws.moor.swissvault.auth;
 
+import com.google.common.net.HttpHeaders;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -39,12 +39,12 @@ class OAuthCallbackServlet extends HttpServlet {
   }
 
   @Override
-  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     String code = req.getParameter("code");
     UserId userId = authHelper.determineUserId(code);
     String cookie = authCookieFactory.createCookieString(userId);
 
-    resp.addHeader("Set-Cookie", cookie);
+    resp.addHeader(HttpHeaders.SET_COOKIE, cookie);
     resp.sendRedirect(req.getParameter("state"));
   }
 }
