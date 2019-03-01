@@ -20,7 +20,6 @@ import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Transaction;
 import com.google.appengine.api.urlfetch.URLFetchService;
 import com.google.appengine.api.urlfetch.URLFetchServiceFactory;
-import com.google.appengine.api.users.User;
 import com.google.gson.JsonParser;
 import com.google.inject.AbstractModule;
 import com.google.inject.Key;
@@ -54,12 +53,6 @@ public class AppEngineModule extends AbstractModule {
     Transaction transaction = datastore.beginTransaction();
     request.setAttribute(Key.get(Transaction.class).toString(), transaction);
     return transaction;
-  }
-
-  @Provides
-  @RequestScoped
-  private User provideUser(HttpServletRequest request) {
-    return (User) request.getAttribute(Key.get(User.class).toString());
   }
 
   @Provides
