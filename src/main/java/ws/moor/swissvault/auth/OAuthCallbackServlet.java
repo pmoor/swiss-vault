@@ -19,7 +19,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -43,9 +42,9 @@ class OAuthCallbackServlet extends HttpServlet {
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     String code = req.getParameter("code");
     UserId userId = authHelper.determineUserId(code);
-    Cookie cookie = authCookieFactory.createCookie(userId);
+    String cookie = authCookieFactory.createCookieString(userId);
 
-    resp.addCookie(cookie);
+    resp.addHeader("Set-Cookie", cookie);
     resp.sendRedirect(req.getParameter("state"));
   }
 }

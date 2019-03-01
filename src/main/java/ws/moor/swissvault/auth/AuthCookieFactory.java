@@ -71,17 +71,17 @@ class AuthCookieFactory {
     return null;
   }
 
-  public Cookie createCookie(UserId userId) {
+  public String createCookieString(UserId userId) {
     Instant creationTime = clock.now();
     byte[] signature = sign(userId, creationTime);
     String value = String.format("%s:%d:%s",
         userId.asString(), creationTime.getMillis(), BaseEncoding.base64().encode(signature));
 
-    Cookie cookie = new Cookie(COOKIE_NAME, value);
-    cookie.setPath("/");
-    cookie.setMaxAge((int) COOKIE_EXPIRATION.getStandardSeconds());
-    cookie.setSecure(secureOnly);
-    return cookie;
+    String string = String.format("%s=%s; Max-Age=%d; HttpOnly; SameSite=Strict", COOKIE_NAME, value, COOKIE_EXPIRATION.getStandardSeconds());
+    if (secureOnly) {
+      string += "; Secure";
+    }
+    return string;
   }
 
   private byte[] sign(UserId userId, Instant creationTime) {
