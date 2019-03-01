@@ -20,9 +20,9 @@
   <runtime>java8</runtime>
   <threadsafe>true</threadsafe>
   <static-files>
-      <include path="/css/**" expiration="3h"/>
-      <include path="/js/script.js" expiration="3h"/>
-      <include path="/js/crypto-js/**" expiration="3h"/>
-      <include path="/js/closure/closure/goog/css/**" expiration="3h"/>
+      <include path="/css/**" expiration="1d"/>
+      <include path="/js/script.js" expiration="1d"/>
+      <include path="/js/crypto-js/**" expiration="1d"/>
+      <include path="/js/closure/closure/goog/css/**" expiration="1d"/>
   </static-files>
 </appengine-web-app>
