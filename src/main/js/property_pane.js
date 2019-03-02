@@ -37,9 +37,11 @@ swissvault.PropertyPane.prototype.decorateInternal = function(element) {
 
   this.ro_name = goog.dom.createDom('div', 'propertyName');
   goog.dom.appendChild(this.ro_fields, this.ro_name);
+  goog.dom.appendChild(this.ro_fields, goog.dom.createTextNode(" "));
 
   this.ro_value = goog.dom.createDom('div', 'propertyValue');
   goog.dom.appendChild(this.ro_fields, this.ro_value);
+  goog.dom.appendChild(this.ro_fields, goog.dom.createTextNode(" "));
 
   this.edit_button = goog.dom.createDom('a', 'button', 'edit');
   goog.events.listen(this.edit_button, goog.events.EventType.CLICK, function() {

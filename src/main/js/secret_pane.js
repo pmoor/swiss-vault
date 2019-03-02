@@ -40,8 +40,12 @@ swissvault.SecretPane.prototype.decorateInternal = function(element) {
   this.ro_fields = goog.dom.createDom('div', 'secretTitle');
   this.ro_name = goog.dom.createDom('div', 'secretName');
   goog.dom.appendChild(this.ro_fields, this.ro_name);
+  goog.dom.appendChild(this.ro_fields, goog.dom.createTextNode(" "));
+
   this.ro_description = goog.dom.createDom('div', 'secretDescription');
   goog.dom.appendChild(this.ro_fields, this.ro_description);
+  goog.dom.appendChild(this.ro_fields, goog.dom.createTextNode(" "));
+
   this.edit_button = goog.dom.createDom('a', 'button', 'edit');
   goog.events.listen(this.edit_button, goog.events.EventType.CLICK, function() {
     this.showEditableFields();
