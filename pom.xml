@@ -14,8 +14,7 @@
     <url>https://github.com/pmoor/swiss-vault</url>
 
     <properties>
-        <!-- 5.1.0 ships a 34MB appengine-api-1.0-sdk jar, above App Engine's 32MB per-file limit -->
-        <appengine.sdk.version>5.0.5</appengine.sdk.version>
+        <appengine.sdk.version>5.1.0</appengine.sdk.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <client.sources>${project.basedir}/src/main/webapp/js</client.sources>
@@ -70,6 +69,30 @@
                                 </artifactItem>
                             </artifactItems>
                             <outputDirectory>${project.build.directory}/appengine-java-sdk</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!-- Strip Netty native transport binaries and unused gRPC/Netty repackaged classes
+                             from appengine-api-1.0-sdk (which bloated to >33 MB in 5.1.0) so the resulting
+                             SDK jar remains well below App Engine's 32 MB per-file upload limit. -->
+                        <id>unpack-stripped-appengine-api</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.google.appengine</groupId>
+                                    <artifactId>appengine-api-1.0-sdk</artifactId>
+                                    <version>${appengine.sdk.version}</version>
+                                    <outputDirectory>${project.build.directory}/appengine-api-stripped</outputDirectory>
+                                    <excludes>
+                                        META-INF/native/**,
+                                        com/google/appengine/repackaged/io/**
+                                    </excludes>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
@@ -132,6 +155,26 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <executions>
+                    <execution>
+                        <id>jar-stripped-appengine-api</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classesDirectory>${project.build.directory}/appengine-api-stripped</classesDirectory>
+                            <outputDirectory>${project.build.directory}/appengine-api-jar/WEB-INF/lib</outputDirectory>
+                            <classifier>appengine-api-sdk</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
@@ -140,6 +183,9 @@
                     <webResources>
                         <resource>
                             <directory>${client.bundle}</directory>
+                        </resource>
+                        <resource>
+                            <directory>${project.build.directory}/appengine-api-jar</directory>
                         </resource>
                     </webResources>
                 </configuration>
@@ -217,6 +263,7 @@
             <groupId>com.google.appengine</groupId>
             <artifactId>appengine-api-1.0-sdk</artifactId>
             <version>${appengine.sdk.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
