@@ -18,6 +18,7 @@ package ws.moor.swissvault.auth;
 import com.google.common.net.HttpHeaders;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import ws.moor.swissvault.util.UriBuilder;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -31,11 +32,13 @@ class OAuthCallbackServlet extends HttpServlet {
 
   private final AuthHelper authHelper;
   private final AuthCookieFactory authCookieFactory;
+  private final UriBuilder uriBuilder;
 
   @Inject
-  OAuthCallbackServlet(AuthHelper authHelper, AuthCookieFactory authCookieFactory) {
+  OAuthCallbackServlet(AuthHelper authHelper, AuthCookieFactory authCookieFactory, UriBuilder uriBuilder) {
     this.authHelper = authHelper;
     this.authCookieFactory = authCookieFactory;
+    this.uriBuilder = uriBuilder;
   }
 
   @Override
@@ -45,6 +48,7 @@ class OAuthCallbackServlet extends HttpServlet {
     String cookie = authCookieFactory.createCookieString(userId);
 
     resp.addHeader(HttpHeaders.SET_COOKIE, cookie);
-    resp.sendRedirect(req.getParameter("state"));
+    // never redirect to the "state" parameter as-is: it is attacker controlled
+    resp.sendRedirect(uriBuilder.forPath("/").toString());
   }
 }
