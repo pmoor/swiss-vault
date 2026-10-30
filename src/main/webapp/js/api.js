@@ -40,6 +40,7 @@
  * @property {EncryptedValue} value
  */
 
+/** Thrown when the server responds with an error. */
 export class ApiError extends Error {}
 
 /**
