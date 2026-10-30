@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Copyright 2012 Patrick Moor <patrick@moor.ws>
 #
@@ -15,81 +15,121 @@
 # limitations under the License.
 
 import base64
-import M2Crypto
-from M2Crypto import EVP
-from M2Crypto.Rand import rand_bytes
+import hashlib
+import hmac
+import secrets
+from typing import Any, Dict, Optional, Union
+
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 __author__ = 'pmoor'
 
-def createEncryption(secret_key, value):
-  iv = rand_bytes(16)
-  cipher = EVP.Cipher(alg="aes_256_cbc", key=secret_key, iv=iv, op=M2Crypto.encrypt)
-  ciphertext = cipher.update(value)
-  ciphertext += cipher.final()
-  hmac = EVP.hmac(secret_key, iv + value, algo="sha256")
+VALUE_ALGORITHM = "AES_256_CBC_HMAC_SHA256"
+PASSPHRASE_ALGORITHM = "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256"
+PBKDF2_ITERATIONS = 1000
+
+
+def _pad(data: bytes) -> bytes:
+  padder = padding.PKCS7(128).padder()
+  return padder.update(data) + padder.finalize()
+
+
+def _unpad(data: bytes) -> bytes:
+  unpadder = padding.PKCS7(128).unpadder()
+  return unpadder.update(data) + unpadder.finalize()
+
+
+def newRandomSecretKey() -> bytes:
+  return secrets.token_bytes(32)
+
+
+def createEncryption(secret_key: bytes, value: Union[str, bytes]) -> Dict[str, Any]:
+  if isinstance(value, str):
+    cleartext = value.encode('utf-8')
+  else:
+    cleartext = value
+
+  iv = secrets.token_bytes(16)
+  cipher = Cipher(algorithms.AES(secret_key), modes.CBC(iv))
+  encryptor = cipher.encryptor()
+  ciphertext = encryptor.update(_pad(cleartext)) + encryptor.finalize()
+
+  signature = hmac.new(secret_key, iv + cleartext, hashlib.sha256).digest()
 
   return {
     "version": 0,
-    "algorithm": "AES_256_CBC_HMAC_SHA256",
-    "iv": base64.standard_b64encode(iv),
-    "ciphertext": base64.standard_b64encode(ciphertext),
-    "signature": base64.standard_b64encode(hmac)
+    "algorithm": VALUE_ALGORITHM,
+    "iv": base64.b64encode(iv).decode("ascii"),
+    "ciphertext": base64.b64encode(ciphertext).decode("ascii"),
+    "signature": base64.b64encode(signature).decode("ascii"),
   }
 
-def newRandomSecretKey():
-  return rand_bytes(256 / 8)
 
+def createEncryptionWithPassphrase(secret_key: bytes, passphrase: str) -> Dict[str, Any]:
+  iv_and_salt = secrets.token_bytes(16)
+  password_derived_key = hashlib.pbkdf2_hmac(
+      'sha1', passphrase.encode('utf-8'), iv_and_salt, PBKDF2_ITERATIONS, 32)
 
-def createEncryptionWithPassphrase(secret_key, passphrase):
-  iv_and_salt = rand_bytes(128 / 8)
-  password_derived_key = EVP.pbkdf2(passphrase, iv_and_salt, 1000, 256 / 8)
+  cipher = Cipher(algorithms.AES(password_derived_key), modes.CBC(iv_and_salt))
+  encryptor = cipher.encryptor()
+  encrypted_key = encryptor.update(_pad(secret_key)) + encryptor.finalize()
 
-  cipher = EVP.Cipher(alg="aes_256_cbc", key=password_derived_key, iv=iv_and_salt, op=M2Crypto.encrypt)
-  encrypted_key = cipher.update(secret_key)
-  encrypted_key += cipher.final()
-  hmac = EVP.hmac(password_derived_key, iv_and_salt + secret_key, algo="sha256")
+  signature = hmac.new(password_derived_key, iv_and_salt + secret_key, hashlib.sha256).digest()
 
   return {
     "version": 0,
-    "algorithm": "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256",
-    "iv": base64.standard_b64encode(iv_and_salt),
-    "ciphertext": base64.standard_b64encode(encrypted_key),
-    "signature": base64.standard_b64encode(hmac)
+    "algorithm": PASSPHRASE_ALGORITHM,
+    "iv": base64.b64encode(iv_and_salt).decode("ascii"),
+    "ciphertext": base64.b64encode(encrypted_key).decode("ascii"),
+    "signature": base64.b64encode(signature).decode("ascii"),
   }
 
-def extractSecretKey(key_resource, passphrase):
-  for encryption in key_resource["encryptions"]:
-    assert encryption["algorithm"] == "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256"
-    iv = base64.standard_b64decode(encryption["iv"])
-    ciphertext = base64.standard_b64decode(encryption["ciphertext"])
-    signature = base64.standard_b64decode(encryption["signature"])
 
-    password_derived_key = EVP.pbkdf2(passphrase, iv, 1000, 256 / 8)
-
-    try:
-      cipher = EVP.Cipher(alg="aes_256_cbc", key=password_derived_key, iv=iv, op=M2Crypto.decrypt)
-      secret_key = cipher.update(ciphertext)
-      secret_key += cipher.final()
-    except EVP.EVPError:
-      # try other encryptions
+def extractSecretKey(key_resource: Dict[str, Any], passphrase: str) -> Optional[bytes]:
+  for encryption in key_resource.get("encryptions", []):
+    if encryption.get("algorithm") != PASSPHRASE_ALGORITHM:
       continue
 
-    hmac = EVP.hmac(password_derived_key, iv + secret_key, algo="sha256")
-    if hmac == signature:
+    iv = base64.b64decode(encryption["iv"])
+    ciphertext = base64.b64decode(encryption["ciphertext"])
+    signature = base64.b64decode(encryption["signature"])
+
+    password_derived_key = hashlib.pbkdf2_hmac(
+        'sha1', passphrase.encode('utf-8'), iv, PBKDF2_ITERATIONS, 32)
+
+    try:
+      cipher = Cipher(algorithms.AES(password_derived_key), modes.CBC(iv))
+      decryptor = cipher.decryptor()
+      secret_key = _unpad(decryptor.update(ciphertext) + decryptor.finalize())
+    except Exception:
+      # wrong key or invalid padding; try other encryptions
+      continue
+
+    expected_signature = hmac.new(password_derived_key, iv + secret_key, hashlib.sha256).digest()
+    if hmac.compare_digest(expected_signature, signature):
       return secret_key
 
+  return None
 
-def decryptSecret(encryption, secret_key):
-  assert encryption["algorithm"] == "AES_256_CBC_HMAC_SHA256"
-  iv = base64.standard_b64decode(encryption["iv"])
-  ciphertext = base64.standard_b64decode(encryption["ciphertext"])
-  signature = base64.standard_b64decode(encryption["signature"])
 
-  cipher = EVP.Cipher(alg="aes_256_cbc", key=secret_key, iv=iv, op=M2Crypto.decrypt)
-  value = cipher.update(ciphertext)
-  value += cipher.final()
+def decryptSecret(encryption: Dict[str, Any], secret_key: bytes) -> str:
+  if encryption.get("algorithm") != VALUE_ALGORITHM:
+    raise ValueError(f"unsupported algorithm: {encryption.get('algorithm')}")
 
-  hmac = EVP.hmac(secret_key, iv + value, algo="sha256")
-  if hmac != signature:
-    raise Exception("invalid signature")
-  return value
+  iv = base64.b64decode(encryption["iv"])
+  ciphertext = base64.b64decode(encryption["ciphertext"])
+  signature = base64.b64decode(encryption["signature"])
+
+  cipher = Cipher(algorithms.AES(secret_key), modes.CBC(iv))
+  decryptor = cipher.decryptor()
+  try:
+    cleartext = _unpad(decryptor.update(ciphertext) + decryptor.finalize())
+  except Exception as e:
+    raise ValueError("decryption failed; invalid key or corrupted data") from e
+
+  expected_signature = hmac.new(secret_key, iv + cleartext, hashlib.sha256).digest()
+  if not hmac.compare_digest(expected_signature, signature):
+    raise ValueError("invalid signature")
+
+  return cleartext.decode('utf-8')

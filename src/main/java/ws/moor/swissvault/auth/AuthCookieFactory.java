@@ -49,6 +49,10 @@ class AuthCookieFactory {
     this.clock = clock;
   }
 
+  public Duration getCookieExpiration() {
+    return COOKIE_EXPIRATION;
+  }
+
   public UserId extractUserId(HttpServletRequest request) {
     Cookie cookie = findCookie(request);
     if (cookie == null) {

@@ -48,7 +48,8 @@ class OAuthCallbackServlet extends HttpServlet {
     String cookie = authCookieFactory.createCookieString(userId);
 
     resp.addHeader(HttpHeaders.SET_COOKIE, cookie);
-    // never redirect to the "state" parameter as-is: it is attacker controlled
-    resp.sendRedirect(uriBuilder.forPath("/").toString());
+
+    OAuthState state = OAuthState.fromString(req.getParameter("state"));
+    resp.sendRedirect(uriBuilder.forPath(state.getPath()).toString());
   }
 }
