@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -281,6 +282,72 @@ public class ClientTest {
 
     button(export, "close").click();
     assertThat(page.locator("dialog[open]")).hasCount(0);
+  }
+
+  /**
+   * Records everything the browser sends during a session that touches every feature, and checks that
+   * none of the passphrases, names, descriptions or values ever leave the browser.
+   */
+  @Test
+  public void noPlaintextReachesTheServer() throws Exception {
+    List<String> urls = new ArrayList<>();
+    List<String> sent = new ArrayList<>();
+    context.onRequest(request -> {
+      urls.add(request.url());
+      sent.add(request.method() + " " + request.url() + "\n" + request.allHeaders() + "\n"
+          + (request.postData() == null ? "" : request.postData()));
+    });
+    List<String> plaintexts = List.of("PASSPHRASE-1-x7", "PASSPHRASE-2-x7", "KEY-NAME-x7", "KEY-DESCRIPTION-x7",
+        "SECRET-NAME-x7", "SECRET-DESCRIPTION-x7", "PROPERTY-NAME-x7", "PROPERTY-VALUE-x7", "EDITED-VALUE-x7");
+
+    page.navigate(DevServer.BASE_URL + "/");
+    button(unlock("PASSPHRASE-1-x7"), "Create new key...").click();
+    Locator newKey = dialog("New Key");
+    newKey.locator("input[name=name]").fill("KEY-NAME-x7");
+    newKey.locator("input[name=description]").fill("KEY-DESCRIPTION-x7");
+    newKey.locator("input[name=passphrase1]").fill("PASSPHRASE-1-x7");
+    newKey.locator("input[name=passphrase2]").fill("PASSPHRASE-1-x7");
+    newKey.locator("input[type=submit]").click();
+
+    button(keyItem(unlock("PASSPHRASE-1-x7"), "KEY-NAME-x7"), "edit").click();
+    Locator editKey = dialog("Edit Key");
+    editKey.locator("input[name=passphrase]").fill("PASSPHRASE-1-x7");
+    button(editKey, "try").click();
+    editKey.locator("input[name=new-passphrase]").fill("PASSPHRASE-2-x7");
+    button(editKey, "add").click();
+    assertThat(editKey.locator("li")).hasCount(2);
+    button(editKey, "done").click();
+
+    button(keyItem(unlock("PASSPHRASE-2-x7"), "KEY-NAME-x7"), "select").click();
+    button(page, "new secret").click();
+    Locator secret = page.locator(".secretListItem").last();
+    secret.locator("input.secretNameEdit").fill("SECRET-NAME-x7");
+    secret.locator("input.secretDescriptionEdit").fill("SECRET-DESCRIPTION-x7");
+    button(secret, "save").click();
+    button(secret, "+").click();
+    addProperty(secret, 0, "PROPERTY-NAME-x7", "PROPERTY-VALUE-x7");
+    Locator property = secret.locator("li.propertyListItem").first();
+    button(property, "edit").click();
+    property.locator("input.propertyValueEdit").fill("EDITED-VALUE-x7");
+    button(property, "save property").click();
+    assertThat(property.locator("div.propertyValue")).hasText("EDITED-VALUE-x7");
+
+    button(page, "export data").click();
+    assertThat(dialog("Export Data").locator("textarea")).hasValue(java.util.regex.Pattern.compile("EDITED-VALUE-x7"));
+
+    // nothing goes anywhere but our own server
+    for (String url : urls) {
+      assertThat(url).startsWith(DevServer.BASE_URL + "/");
+    }
+    // the browser did send the data, encrypted
+    assertThat(sent.stream().filter(request -> request.startsWith("POST ") || request.startsWith("PUT ")).count())
+        .isAtLeast(5L);
+    for (String request : sent) {
+      for (String plaintext : plaintexts) {
+        assertThat(request).doesNotContain(plaintext);
+        assertThat(request).doesNotContain(Base64.getEncoder().encodeToString(plaintext.getBytes(StandardCharsets.UTF_8)));
+      }
+    }
   }
 
   private Locator dialog(String title) {
