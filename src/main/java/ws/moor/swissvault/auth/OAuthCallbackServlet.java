@@ -48,7 +48,22 @@ class OAuthCallbackServlet extends HttpServlet {
     String cookie = authCookieFactory.createCookieString(userId);
 
     resp.addHeader(HttpHeaders.SET_COOKIE, cookie);
-    // never redirect to the "state" parameter as-is: it is attacker controlled
-    resp.sendRedirect(uriBuilder.forPath("/").toString());
+
+    String redirectPath = "/";
+    String state = req.getParameter("state");
+    if (state != null) {
+      try {
+        java.net.URI stateUri = java.net.URI.create(state);
+        if (stateUri.getHost() == null || stateUri.getHost().equalsIgnoreCase(req.getServerName())) {
+          String path = stateUri.getRawPath();
+          String query = stateUri.getRawQuery();
+          if (path != null && path.startsWith("/") && !path.startsWith("//")) {
+            redirectPath = path + (query != null ? "?" + query : "");
+          }
+        }
+      } catch (IllegalArgumentException ignored) {
+      }
+    }
+    resp.sendRedirect(uriBuilder.forPath(redirectPath).toString());
   }
 }
