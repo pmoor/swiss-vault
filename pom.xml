@@ -17,6 +17,8 @@
         <appengine.sdk.version>5.0.5</appengine.sdk.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <client.sources>${project.basedir}/src/main/webapp/js</client.sources>
+        <client.bundle>${project.build.directory}/client-bundle</client.bundle>
         <!-- port the dev server listens on during integration tests -->
         <it.port>8181</it.port>
         <!-- Chrome used by the browser integration tests -->
@@ -31,6 +33,24 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.11.0</version>
                 <executions>
+                    <execution>
+                        <id>copy-closure-compiler</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.google.javascript</groupId>
+                                    <artifactId>closure-compiler</artifactId>
+                                    <version>v20261005</version>
+                                    <destFileName>closure-compiler.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>unpack-appengine-sdk</id>
                         <phase>package</phase>
@@ -74,6 +94,36 @@
                             <asyncDestroyOnShutdown>true</asyncDestroyOnShutdown>
                         </configuration>
                     </execution>
+                    <execution>
+                        <!-- bundles and minifies the client's modules into js/app.js (plus a source map) -->
+                        <id>bundle-client</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <!-- output paths relative to here, so the source map has no absolute path -->
+                            <workingDirectory>${client.bundle}/js</workingDirectory>
+                            <arguments>
+                                <argument>-jar</argument>
+                                <argument>${project.build.directory}/closure-compiler.jar</argument>
+                                <!-- SIMPLE only: ADVANCED would rename the fields of the server's JSON -->
+                                <argument>--compilation_level=SIMPLE</argument>
+                                <argument>--language_in=STABLE</argument>
+                                <argument>--language_out=ECMASCRIPT_2021</argument>
+                                <argument>--dependency_mode=PRUNE</argument>
+                                <argument>--js_module_root=${client.sources}</argument>
+                                <argument>--entry_point=main.js</argument>
+                                <argument>--js=${client.sources}/**.js</argument>
+                                <argument>--js_output_file=app.js</argument>
+                                <argument>--create_source_map=app.js.map</argument>
+                                <argument>--source_map_include_content</argument>
+                                <argument>--source_map_location_mapping=${client.sources}/|/js/</argument>
+                                <argument>--output_wrapper=%output%&#10;//# sourceMappingURL=app.js.map</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
@@ -81,6 +131,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.5.1</version>
+                <configuration>
+                    <!-- ship the bundle instead of the individual modules -->
+                    <warSourceExcludes>js/**</warSourceExcludes>
+                    <webResources>
+                        <resource>
+                            <directory>${client.bundle}</directory>
+                        </resource>
+                    </webResources>
+                </configuration>
             </plugin>
 
             <plugin>

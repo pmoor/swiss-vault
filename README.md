@@ -17,9 +17,11 @@ component is not needed.
 
 ## Client
 
-The client in `src/main/webapp/js` is plain JavaScript (ES modules) that the
-browser runs as-is; there is no build step. Types are declared in JSDoc comments
-and checked by TypeScript, which CI runs and which needs Node.js locally:
+The client in `src/main/webapp/js` is plain JavaScript (ES modules). `mvn package`
+bundles and minifies it into a single `js/app.js` (plus `app.js.map`) with the
+Closure Compiler from Maven Central; only the bundle is deployed. Types are
+declared in JSDoc comments and checked by TypeScript, which CI runs and which
+needs Node.js locally:
 
     npx -p typescript@7.0.2 tsc -p tsconfig.json
 
