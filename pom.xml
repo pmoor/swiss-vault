@@ -19,6 +19,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- port the dev server listens on during integration tests -->
         <it.port>8181</it.port>
+        <!-- Chrome used by the browser integration tests -->
+        <chrome.path>/usr/bin/google-chrome</chrome.path>
     </properties>
 
     <build>
@@ -117,6 +119,7 @@
                     <groups>ws.moor.categories.Integration</groups>
                     <systemPropertyVariables>
                         <it.port>${it.port}</it.port>
+                        <chrome.path>${chrome.path}</chrome.path>
                     </systemPropertyVariables>
                     <includes>
                       <include>**/*Test.java</include>
@@ -183,6 +186,13 @@
             <groupId>com.google.inject.extensions</groupId>
             <artifactId>guice-servlet</artifactId>
             <version>6.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.64.0</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

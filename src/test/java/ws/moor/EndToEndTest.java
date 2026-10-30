@@ -13,25 +13,14 @@ import java.net.URL;
 @Category(Integration.class)
 public class EndToEndTest {
 
-  private static final String BASE_URL = "http://localhost:" + System.getProperty("it.port", "8080");
-
   @BeforeClass
   public static void waitForDevServer() throws InterruptedException {
-    // the dev server is started asynchronously by maven, give it some time to come up
-    for (int attempt = 0; attempt < 120; attempt++) {
-      try {
-        new URL(BASE_URL + "/").openConnection().connect();
-        return;
-      } catch (IOException e) {
-        Thread.sleep(500);
-      }
-    }
-    throw new IllegalStateException("dev server did not start at " + BASE_URL);
+    DevServer.awaitStartup();
   }
 
   @Test
   public void initialAuthRedirect() throws IOException {
-    HttpURLConnection connection = (HttpURLConnection) new URL(BASE_URL + "/").openConnection();
+    HttpURLConnection connection = (HttpURLConnection) new URL(DevServer.BASE_URL + "/").openConnection();
     connection.setInstanceFollowRedirects(false);
 
     Truth.assertThat(connection.getResponseCode()).isEqualTo(HttpURLConnection.HTTP_MOVED_TEMP);
