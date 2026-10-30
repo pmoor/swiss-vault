@@ -18,8 +18,6 @@ package ws.moor.swissvault;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Transaction;
-import com.google.appengine.api.urlfetch.URLFetchService;
-import com.google.appengine.api.urlfetch.URLFetchServiceFactory;
 import com.google.gson.JsonParser;
 import com.google.inject.AbstractModule;
 import com.google.inject.Key;
@@ -53,12 +51,6 @@ public class AppEngineModule extends AbstractModule {
     Transaction transaction = datastore.beginTransaction();
     request.setAttribute(Key.get(Transaction.class).toString(), transaction);
     return transaction;
-  }
-
-  @Provides
-  @Singleton
-  private URLFetchService provideUrlFetchService() {
-    return URLFetchServiceFactory.getURLFetchService();
   }
 
   @Provides
