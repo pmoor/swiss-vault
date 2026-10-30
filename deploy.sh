@@ -14,7 +14,6 @@ test -f src/main/resources/production.properties || {
   exit 1
 }
 
-./compile-js.sh
 mvn -B clean verify
 
 # converts appengine-web.xml into the app.yaml gcloud expects

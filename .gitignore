@@ -3,4 +3,3 @@
 SwissVault.iml
 .idea
 src/main/resources/production.properties
-src/main/webapp/js/compiled.js

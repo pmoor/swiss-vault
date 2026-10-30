@@ -4,14 +4,28 @@ Swiss Vault - Secure Cloud Based Password Manager
 
 ## Building
 
-Requires JDK 25, Maven and python3.
+Requires JDK 25 and Maven.
 
-    ./compile-js.sh   # writes src/main/webapp/js/compiled.js
     mvn verify        # unit tests, WAR in target/, then integration tests against a dev server
+
+The integration tests include browser tests (`ClientTest`), which drive Chrome at
+`/usr/bin/google-chrome` (override with `-Dchrome.path=...`).
 
 The App Engine SDK (dev server and deploy staging) is fetched from Maven Central
 and unpacked into `target/appengine-java-sdk`, so the gcloud `app-engine-java`
 component is not needed.
+
+## Client
+
+The client in `src/main/webapp/js` is plain JavaScript (ES modules) that the
+browser runs as-is; there is no build step. Types are declared in JSDoc comments
+and checked by TypeScript, which CI runs and which needs Node.js locally:
+
+    npx -p typescript@7.0.2 tsc -p tsconfig.json
+
+All encryption happens in the browser (`crypto.js`), the server only ever sees
+ciphertext. `src/test/resources/legacy-client-data.json` holds data written by
+the original 2012 client; `ClientTest` makes sure it stays readable.
 
 ## Running locally
 
