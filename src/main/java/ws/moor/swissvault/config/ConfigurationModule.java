@@ -39,6 +39,9 @@ public class ConfigurationModule extends AbstractModule {
       resourceName = "/development.properties";
     }
     InputStream resource = ConfigurationModule.class.getResourceAsStream(resourceName);
+    if (resource == null) {
+      throw new IllegalStateException("missing configuration file: src/main/resources" + resourceName);
+    }
     Properties properties = new Properties();
     properties.load(resource);
     return properties;
