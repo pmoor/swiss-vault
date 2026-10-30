@@ -6,7 +6,8 @@
 
     <groupId>ws.moor.swissvault</groupId>
     <artifactId>swiss-vault</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <!-- also the App Engine version deploy.sh uploads, with dots replaced by dashes: 1-3-snapshot -->
+    <version>1.3-SNAPSHOT</version>
     <packaging>war</packaging>
 
     <name>Swiss Vault</name>
@@ -26,6 +27,8 @@
     </properties>
 
     <build>
+        <!-- without the version, so scripts can find the exploded WAR in target/swiss-vault -->
+        <finalName>swiss-vault</finalName>
         <plugins>
             <!-- the App Engine SDK provides the dev server and deploy staging, see devserver.sh and deploy.sh -->
             <plugin>
