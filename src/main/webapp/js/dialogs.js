@@ -69,8 +69,9 @@ export async function chooseKey(keys) {
     });
     dialog.content.append(
         h('ul', {}, ...items),
-        h('div', {}, button('Create new key...', () => choose({action: 'create'}))),
-        h('div', {}, button('Different passphrase...', () => choose({action: 'different-passphrase'}))));
+        h('div', {},
+            button('Create new key...', () => choose({action: 'create'})), ' ',
+            button('Different passphrase...', () => choose({action: 'different-passphrase'}))));
     dialog.show();
   });
 }
