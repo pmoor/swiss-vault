@@ -17,35 +17,60 @@
         <appengine.sdk.version>5.0.5</appengine.sdk.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- port the dev server listens on during integration tests -->
+        <it.port>8181</it.port>
     </properties>
 
     <build>
         <plugins>
+            <!-- the App Engine SDK provides the dev server and deploy staging, see devserver.sh and deploy.sh -->
             <plugin>
-                <groupId>com.google.cloud.tools</groupId>
-                <artifactId>appengine-maven-plugin</artifactId>
-                <version>2.8.7</version>
-                <configuration>
-                    <projectId>swiss-vault</projectId>
-                    <!-- App Engine version cannot contain any dots nor any uppercase characters -->
-                    <version>1-0-snapshot</version>
-                    <promote>false</promote>
-                </configuration>
-
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.11.0</version>
                 <executions>
                     <execution>
-                        <id>start-gae</id>
+                        <id>unpack-appengine-sdk</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.google.appengine</groupId>
+                                    <artifactId>appengine-java-sdk</artifactId>
+                                    <version>${appengine.sdk.version}</version>
+                                    <type>zip</type>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/appengine-java-sdk</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.4</version>
+                <executions>
+                    <execution>
+                        <id>start-devserver</id>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>start</goal>
+                            <goal>exec</goal>
                         </goals>
-                    </execution>
-                    <execution>
-                        <id>stop-gae</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>stop</goal>
-                        </goals>
+                        <configuration>
+                            <executable>${project.basedir}/devserver.sh</executable>
+                            <arguments>
+                                <argument>${it.port}</argument>
+                                <argument>${project.build.directory}/devserver-it</argument>
+                            </arguments>
+                            <!-- keeps running during the integration tests, killed when maven exits -->
+                            <async>true</async>
+                            <asyncDestroyOnShutdown>true</asyncDestroyOnShutdown>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -90,6 +115,9 @@
                 <configuration>
                     <failIfNoTests>true</failIfNoTests>
                     <groups>ws.moor.categories.Integration</groups>
+                    <systemPropertyVariables>
+                        <it.port>${it.port}</it.port>
+                    </systemPropertyVariables>
                     <includes>
                       <include>**/*Test.java</include>
                     </includes>
