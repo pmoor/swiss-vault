@@ -15,7 +15,6 @@
  */
 package ws.moor.swissvault.auth;
 
-import com.google.appengine.api.urlfetch.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
@@ -32,8 +31,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -45,16 +46,21 @@ public class AuthHelper {
   private static final URI PROFILE_SCOPE = URI.create("https://www.googleapis.com/auth/userinfo.profile");
   private static final Set<URI> SCOPES = ImmutableSet.of(PROFILE_SCOPE);
 
-  private final URLFetchService urlFetchService;
+  private final HttpClient httpClient;
   private final JsonParser jsonParser;
   private final UriBuilder uriBuilder;
   private final String clientId;
   private final String clientSecret;
 
   @Inject
-  AuthHelper(URLFetchService urlFetchService, JsonParser jsonParser, UriBuilder uriBuilder,
+  AuthHelper(JsonParser jsonParser, UriBuilder uriBuilder,
              @Config("oauth.client_secret") String clientSecret, @Config("oauth.client_id") String clientId) {
-    this.urlFetchService = urlFetchService;
+    this(HttpClient.newHttpClient(), jsonParser, uriBuilder, clientSecret, clientId);
+  }
+
+  AuthHelper(HttpClient httpClient, JsonParser jsonParser, UriBuilder uriBuilder,
+             String clientSecret, String clientId) {
+    this.httpClient = httpClient;
     this.jsonParser = jsonParser;
     this.uriBuilder = uriBuilder;
     this.clientSecret = clientSecret;
@@ -85,16 +91,34 @@ public class AuthHelper {
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
     parameters.put("grant_type", "authorization_code");
 
-    HTTPRequest fetchRequest = new HTTPRequest(new URL("https://accounts.google.com/o/oauth2/token"), HTTPMethod.POST);
-    fetchRequest.setPayload(buildKeyValueString(parameters, true).getBytes());
-    HTTPResponse response = urlFetchService.fetch(fetchRequest);
-    JsonObject object = jsonParser.parse(new String(response.getContent())).getAsJsonObject();
-    String access_token = object.get("access_token").getAsString();
+    HttpRequest tokenRequest = HttpRequest.newBuilder()
+        .uri(URI.create("https://accounts.google.com/o/oauth2/token"))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .POST(HttpRequest.BodyPublishers.ofString(buildKeyValueString(parameters, true)))
+        .build();
+    HttpResponse<String> tokenResponse;
+    try {
+      tokenResponse = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Interrupted while fetching OAuth token", e);
+    }
+    JsonObject object = jsonParser.parse(tokenResponse.body()).getAsJsonObject();
+    String accessToken = object.get("access_token").getAsString();
 
-    HTTPRequest secondRequest = new HTTPRequest(new URL("https://www.googleapis.com/oauth2/v1/userinfo"));
-    secondRequest.addHeader(new HTTPHeader("Authorization", String.format("Bearer %s", access_token)));
-    response = urlFetchService.fetch(secondRequest);
-    object = jsonParser.parse(new String(response.getContent())).getAsJsonObject();
+    HttpRequest userinfoRequest = HttpRequest.newBuilder()
+        .uri(URI.create("https://www.googleapis.com/oauth2/v1/userinfo"))
+        .header("Authorization", String.format("Bearer %s", accessToken))
+        .GET()
+        .build();
+    HttpResponse<String> userinfoResponse;
+    try {
+      userinfoResponse = httpClient.send(userinfoRequest, HttpResponse.BodyHandlers.ofString());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Interrupted while fetching userinfo", e);
+    }
+    object = jsonParser.parse(userinfoResponse.body()).getAsJsonObject();
 
     return UserId.fromString(object.get("id").getAsString());
   }

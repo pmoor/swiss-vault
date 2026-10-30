@@ -15,7 +15,6 @@
  */
 package ws.moor.swissvault.config;
 
-import com.google.appengine.api.utils.SystemProperty;
 import com.google.common.io.BaseEncoding;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -35,7 +34,8 @@ public class ConfigurationModule extends AbstractModule {
   @Singleton
   private Properties loadProperties() throws IOException {
     String resourceName = "/production.properties";
-    if (SystemProperty.environment.value() == SystemProperty.Environment.Value.Development) {
+    String environment = System.getProperty("com.google.appengine.runtime.environment");
+    if ("Development".equalsIgnoreCase(environment)) {
       resourceName = "/development.properties";
     }
     InputStream resource = ConfigurationModule.class.getResourceAsStream(resourceName);
