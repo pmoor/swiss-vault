@@ -284,6 +284,33 @@ public class ClientTest {
     assertThat(page.locator("dialog[open]")).hasCount(0);
   }
 
+  @Test
+  public void searchHidesNonMatchingSecrets() throws Exception {
+    importLegacyData();
+    openKey("correct horse battery staple", "Family");
+    Locator search = page.getByRole(AriaRole.SEARCHBOX, new Page.GetByRoleOptions().setName("Search secrets"));
+    assertThat(search).isFocused();
+    Locator visibleNames = page.locator(".secretListItem:visible div.secretName");
+
+    search.fill("WEBMAIL");  // in the description, any case
+    assertThat(visibleNames).hasText(new String[] {"Mail"});
+    search.fill("web login");  // every word has to match
+    assertThat(visibleNames).hasText(new String[] {"Mail"});
+    search.fill("ban");
+    assertThat(visibleNames).hasText(new String[] {"bank"});
+    search.fill("bank mail");
+    assertThat(page.locator(".secretListItem:visible")).hasCount(0);
+    search.press("Escape");
+    assertThat(search).hasValue("");
+    assertThat(visibleNames).hasText(new String[] {"bank", "Mail"});
+
+    // a new secret stays visible while it is being entered
+    search.fill("bank");
+    button(page, "new secret").click();
+    assertThat(page.locator(".secretListItem:visible")).hasCount(2);
+    assertThat(page.locator(".secretListItem:visible input.secretNameEdit")).isFocused();
+  }
+
   /**
    * Records everything the browser sends during a session that touches every feature, and checks that
    * none of the passphrases, names, descriptions or values ever leave the browser.

@@ -35,14 +35,30 @@ export async function showSecrets(key) {
   })));
   secrets.sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}));
 
-  const list = h('ul', {class: 'secretList'}, ...secrets.map(secret => new SecretPane(key, secret).element));
-  document.body.append(list, h('div', {class: 'mainOptions'},
+  const panes = secrets.map(secret => new SecretPane(key, secret));
+  const list = h('ul', {class: 'secretList'}, ...panes.map(pane => pane.element));
+
+  // hides the secrets whose name and description do not contain every word typed
+  const search = h('input', {type: 'search', class: 'search', placeholder: 'Search', 'aria-label': 'Search secrets'});
+  const filter = () => {
+    const words = search.value.toLocaleLowerCase().split(/\s+/).filter(word => word);
+    for (const pane of panes) {
+      pane.element.hidden = !pane.matches(words);
+    }
+  };
+  search.addEventListener('input', filter);
+  // some browsers clear search fields on escape without an input event
+  search.addEventListener('search', filter);
+
+  document.body.append(h('div', {class: 'searchBar'}, search), list, h('div', {class: 'mainOptions'},
       button('new secret', () => {
         const pane = new SecretPane(key, null);
+        panes.push(pane);
         list.append(pane.element);
         pane.nameInput.focus();
       }, 'button'),
       button('export data', () => showExport(key), 'button')));
+  search.focus();
 }
 
 class SecretPane {
@@ -82,6 +98,18 @@ class SecretPane {
     } else {
       this.showEditableFields();
     }
+  }
+
+  /**
+   * @param {string[]} words lower case
+   * @returns {boolean} whether the name or description contains all words; a new, unsaved secret always matches
+   */
+  matches(words) {
+    if (!this.secret) {
+      return true;
+    }
+    const text = (this.secret.name + ' ' + this.secret.description).toLocaleLowerCase();
+    return words.every(word => text.includes(word));
   }
 
   showReadOnlyFields() {
