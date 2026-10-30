@@ -25,23 +25,33 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 @Singleton
 class CliLoginServlet extends HttpServlet {
 
   public static final String PATH = "/cli-login";
 
+  private static final DateTimeFormatter EXPIRATION_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC);
+
   private final AuthHelper authHelper;
   private final AuthCookieFactory authCookieFactory;
   private final Provider<Optional<UserId>> userIdProvider;
+  private final Clock clock;
 
   @Inject
   CliLoginServlet(AuthHelper authHelper,
                   AuthCookieFactory authCookieFactory,
-                  @AuthenticatedUser Provider<Optional<UserId>> userIdProvider) {
+                  @AuthenticatedUser Provider<Optional<UserId>> userIdProvider,
+                  Clock clock) {
     this.authHelper = authHelper;
     this.authCookieFactory = authCookieFactory;
     this.userIdProvider = userIdProvider;
+    this.clock = clock;
   }
 
   @Override
@@ -49,13 +59,18 @@ class CliLoginServlet extends HttpServlet {
     Optional<UserId> userId = userIdProvider.get();
 
     if (!userId.isPresent()) {
-      resp.sendRedirect(authHelper.createRedirectUri(PATH).toString());
+      resp.sendRedirect(authHelper.createRedirectUri(OAuthState.CLI_LOGIN).toString());
       return;
     }
 
     resp.setContentType("text/html; charset=UTF-8");
     String cookieHeader = authCookieFactory.createCookieString(userId.get());
     String authValue = cookieHeader.substring("auth=".length(), cookieHeader.indexOf(';'));
+
+    Instant now = clock.instant();
+    Instant expiresAt = now.plus(authCookieFactory.getCookieExpiration());
+    String expiresAtFormatted = EXPIRATION_FORMATTER.format(expiresAt);
+    long expirationMinutes = authCookieFactory.getCookieExpiration().toMinutes();
 
     PrintWriter out = resp.getWriter();
     out.println("<!doctype html>");
@@ -66,7 +81,9 @@ class CliLoginServlet extends HttpServlet {
     out.println("h2 { margin-top: 0; color: #333; }");
     out.println("p { color: #555; line-height: 1.5; }");
     out.println(".user { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; }");
-    out.println(".token-box { width: 100%; height: 70px; font-family: monospace; font-size: 13px; margin-top: 12px; box-sizing: border-box; padding: 10px; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 4px; word-break: break-all; }");
+    out.println(".meta { font-size: 13px; color: #5f6368; margin-top: 16px; margin-bottom: 4px; }");
+    out.println(".expiration { font-weight: 600; color: #d93025; }");
+    out.println(".token-box { width: 100%; height: 70px; font-family: monospace; font-size: 13px; margin-top: 8px; box-sizing: border-box; padding: 10px; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 4px; word-break: break-all; }");
     out.println("</style>");
     out.println("</head><body>");
     out.println("<div class=\"container\">");
@@ -74,6 +91,8 @@ class CliLoginServlet extends HttpServlet {
     out.println("<p>Logged in as <span class=\"user\">" + escapeHtml(userId.get().asString()) + "</span></p>");
     out.println("<p>Copy and paste this token into your terminal:</p>");
     out.println("<textarea readonly class=\"token-box\" onclick=\"this.select()\">" + escapeHtml(authValue) + "</textarea>");
+    out.println("<p class=\"meta\"><strong>Expires:</strong> <span class=\"expiration\">" + escapeHtml(expiresAtFormatted) + "</span> (valid for " + expirationMinutes + " minutes)</p>");
+    out.println("<p class=\"meta\">Note: This is a short-lived session token. You will need to log in again once it expires.</p>");
     out.println("</div></body></html>");
   }
 

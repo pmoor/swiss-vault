@@ -157,7 +157,7 @@ class ClientDevTest(unittest.TestCase):
     self.assertEqual(302, resp.status)
     loc = resp.getheader("Location")
     self.assertIn("accounts.google.com/o/oauth2/auth", loc)
-    self.assertIn("state=", loc)
+    self.assertIn("state=CLI_LOGIN", loc)
     resp.read()
 
     # Authenticated GET /cli-login shows HTML with auth token in textarea
@@ -171,6 +171,8 @@ class ClientDevTest(unittest.TestCase):
     self.assertIn(user_id, body)
     # The textarea contains a freshly generated auth cookie for user_id
     self.assertIn(f">{user_id}:", body)
+    self.assertIn("Expires:", body)
+    self.assertIn("minutes)", body)
 
     conn.close()
 

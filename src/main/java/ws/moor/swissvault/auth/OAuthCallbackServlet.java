@@ -49,21 +49,7 @@ class OAuthCallbackServlet extends HttpServlet {
 
     resp.addHeader(HttpHeaders.SET_COOKIE, cookie);
 
-    String redirectPath = "/";
-    String state = req.getParameter("state");
-    if (state != null) {
-      try {
-        java.net.URI stateUri = java.net.URI.create(state);
-        if (stateUri.getHost() == null || stateUri.getHost().equalsIgnoreCase(req.getServerName())) {
-          String path = stateUri.getRawPath();
-          String query = stateUri.getRawQuery();
-          if (path != null && path.startsWith("/") && !path.startsWith("//")) {
-            redirectPath = path + (query != null ? "?" + query : "");
-          }
-        }
-      } catch (IllegalArgumentException ignored) {
-      }
-    }
-    resp.sendRedirect(uriBuilder.forPath(redirectPath).toString());
+    OAuthState state = OAuthState.fromString(req.getParameter("state"));
+    resp.sendRedirect(uriBuilder.forPath(state.getPath()).toString());
   }
 }
