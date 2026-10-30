@@ -21,4 +21,4 @@ exec java \
   --sdk_root=${SDK} \
   --port=${PORT} \
   --generated_dir=${GENERATED_DIR} \
-  target/swiss-vault-1.0-SNAPSHOT
+  target/swiss-vault

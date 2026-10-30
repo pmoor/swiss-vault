@@ -5,8 +5,6 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PROJECT=swiss-vault
-# App Engine version cannot contain any dots nor any uppercase characters
-VERSION=1-0-snapshot
 SDK=target/appengine-java-sdk/google_appengine_java_delta/google/appengine/tools/java
 
 test -f src/main/resources/production.properties || {
@@ -16,9 +14,12 @@ test -f src/main/resources/production.properties || {
 
 mvn -B clean verify
 
+# the project version from pom.xml; App Engine versions cannot contain dots nor uppercase characters
+VERSION=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout 2>/dev/null | tr 'A-Z.' 'a-z-')
+
 # converts appengine-web.xml into the app.yaml gcloud expects
 java -cp ${SDK}/lib/appengine-tools-api.jar com.google.appengine.tools.admin.AppCfg \
-  stage target/swiss-vault-1.0-SNAPSHOT target/appengine-staging
+  stage target/swiss-vault target/appengine-staging
 
 gcloud app deploy target/appengine-staging/app.yaml \
   --project=${PROJECT} --version=${VERSION} --no-promote "$@"
