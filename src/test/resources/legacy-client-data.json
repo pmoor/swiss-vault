@@ -1,0 +1,259 @@
+{
+  "comment": "written by the legacy Closure/Crypto-JS client (git e0c91f5); test data only",
+  "expected": [
+    {
+      "name": "Family",
+      "description": "shared – Familie",
+      "passphrases": [
+        "correct horse battery staple",
+        "zweites Passwort ä"
+      ],
+      "secrets": [
+        {
+          "name": "Mail",
+          "description": "webmail login",
+          "properties": [
+            {
+              "name": "user",
+              "value": "alice@example.com"
+            },
+            {
+              "name": "password",
+              "value": "hunter2 äöü 🔑"
+            }
+          ]
+        },
+        {
+          "name": "bank",
+          "description": "",
+          "properties": [
+            {
+              "name": "PIN",
+              "value": "0042"
+            },
+            {
+              "name": "notes",
+              "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 長い値 yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Work",
+      "description": "",
+      "passphrases": [
+        "other passphrase"
+      ],
+      "secrets": [
+        {
+          "name": "VPN",
+          "description": "office",
+          "properties": [
+            {
+              "name": "password",
+              "value": "s3cr3t"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "keys": [
+    {
+      "name": {
+        "version": 0,
+        "algorithm": "AES_256_CBC_HMAC_SHA256",
+        "iv": "dNjadLGP1SOD+WunlE3nqA==",
+        "ciphertext": "ctf10Qbf5p+RuonQVKJRUQ==",
+        "signature": "abT5F5d6sa3z4F3DdsfNkusRuPpsfCaoEDThSVUfRvA="
+      },
+      "description": {
+        "version": 0,
+        "algorithm": "AES_256_CBC_HMAC_SHA256",
+        "iv": "ROlW76zAbpkdfAFO/Exx5w==",
+        "ciphertext": "LfaRUhS2QWGr2BKLlHLkRBniLSGYjFx9kKqD9f2w3JE=",
+        "signature": "m+Rkj3Alm/ljKPlB6VUaLcnx8Gx/wdMIPqG0Us223fU="
+      },
+      "encryptions": [
+        {
+          "version": 0,
+          "algorithm": "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256",
+          "iv": "XeW6vsLQqh/3zKU5mE3dRQ==",
+          "ciphertext": "vyK1izSqj/JzWEMNzXtbmxcvMHVfv2jTyjR+8sxADez7TjYnLrMKeoeGEVDkwruV",
+          "signature": "eguTR9PHHnodUpsBDwnkWRxwuZf+vHo8q1vmdAkTxRI="
+        },
+        {
+          "version": 0,
+          "algorithm": "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256",
+          "iv": "mumZZ/yoIpEWopFUh00rlA==",
+          "ciphertext": "3Lm7THrEV8HoWN0mGmGnlTqa9NJ7/CmQNsE19B/CWo6G55IlXGY65aVn1IfTsHD2",
+          "signature": "Y1Ko/PQHj7+tzpkerhUCwfmULMcQ58Edg9BWGURNCmg="
+        }
+      ],
+      "secrets": [
+        {
+          "name": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "WoUN7e4kSE0YecAU6fuMhQ==",
+            "ciphertext": "w5jFpZkxDHnsItoSVuImVA==",
+            "signature": "vfH5zRMK2n35BjcPEiI6BVN1sDBQYs1Q1Yo0VZQRvMA="
+          },
+          "description": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "IKb+o5Hjr3NQ6OzwTI+h0g==",
+            "ciphertext": "Yu+i1XVymV/+h6QFBnPRoQ==",
+            "signature": "wac3EQi9LdiHAg8fvWrFIA06bKuLgHtk3ASeHhh/YBU="
+          },
+          "properties": [
+            {
+              "name": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "9MKdjlAPcL2tbcT+T78pIg==",
+                "ciphertext": "aoe2atYzrrwLhIo2Al/RMg==",
+                "signature": "f3mlZA5P2PxVRhRSkZxKnMldh17nEbg1jdweTQG4IJA="
+              },
+              "value": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "nZ0cYMwKMT6FD9lVoc6GXA==",
+                "ciphertext": "u+wWRBw+aKUvBTxknZ9hi7+pIDkgyTJPqo/4FQiA/Ro=",
+                "signature": "gftHmBlt6BBXBXpLaJkoyH7WbXq4SFsu0p4AQxsK0MY="
+              }
+            },
+            {
+              "name": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "lfMkJqkuKRW+vLTHMvbodw==",
+                "ciphertext": "rtiDXTSHUd6otNj+s8LZZQ==",
+                "signature": "U0jQfkSAL36B2i3eX5WQ1eqISwdxmy0Y2Z4IfDEMbxk="
+              },
+              "value": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "/cviaMKxs713gYJTqngQiA==",
+                "ciphertext": "Jsv4y1kZGVrAciQErXqdGDjjzvzsxoTrx/NAnQ1z24I=",
+                "signature": "alX5hYWN3cEkG5RZPvi+T3H/vyHsj2CG3ru2XWIzkcA="
+              }
+            }
+          ]
+        },
+        {
+          "name": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "rA21S/TiKyLq12wVCD2q7Q==",
+            "ciphertext": "gzpOrTrYspLs1QlFWaFxHQ==",
+            "signature": "5bPc/JpN0w4scQfVQxPaNOhuESgyjirXP8W33tnGRf8="
+          },
+          "description": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "DoWo375Z/g2WJM6eoN3t5w==",
+            "ciphertext": "Mq27/CPfC9iKVLqf9Px0hw==",
+            "signature": "wu8iIeeDnG39f9fNiinc/YDehVnA7kUcvfTWhQpmmGQ="
+          },
+          "properties": [
+            {
+              "name": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "QZyppcpW4pMII31l9P52nQ==",
+                "ciphertext": "GU/u+CR16aCnQx8NjGU5Fg==",
+                "signature": "jVpQ9GxNGugp+bdPLEtDGvqX3MjPRo27xR/rKt6HlWg="
+              },
+              "value": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "N44hDSisEDOyE3ZEGJ3a5w==",
+                "ciphertext": "+MCYr+R9JUtXuSbRy2bCzg==",
+                "signature": "KPhclzRcU4LMHlNlqAWMxGg9rdPRtuixRuL9AUTPMhA="
+              }
+            },
+            {
+              "name": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "YLs/6qmGUPR4UP8oVepniQ==",
+                "ciphertext": "ezLfuHy/8//Nj+qmbIklQA==",
+                "signature": "y04aEhMILuKAWFbjD+jja5j3E0V0wnFjYZGWyji/2hg="
+              },
+              "value": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "BD0si/Kgm9m3w90U/3uMcw==",
+                "ciphertext": "31hrPC/mWvYLZ7bx5WPsCA7qw6JFV7kUox7lYlAcOi6BsprxdTzE/L0hcfCv03vfG4r+w81rzZQErg4z1TAwh21ZabMy7wgXlw3SOktrr6v1VVuxV/PoXly2AQWBiSDbgagVjrGNrDqjuLgIl/hE3I/uExwsCKEYy58htMQn2IF31Bzwb0vFJ793gblElJ6GJrGt3Ep7QUonWBIa23n00CfIxpQ89+3HIX8xg+5PXyej0HB3qYv7RCsz3OULk79LBHDH+8EASnzL+zxfiPR6JOokk7nqYMbFUhvabrYPaDRwoR4yRpw1j8xrssw6bWaCclu/ACzLaHxNrTYGBkVIPQ==",
+                "signature": "cePeApqqwGuHsuzdATEEKGvzWzxF4zGPuHZ017v9ucM="
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": {
+        "version": 0,
+        "algorithm": "AES_256_CBC_HMAC_SHA256",
+        "iv": "FftDBBqJ8b3o3VweeNx2jg==",
+        "ciphertext": "CVqVMTDjvmSy9yDaaOqJIg==",
+        "signature": "kv5NKTrTRiG6aHcbQsi7ACieRu8A0rzLpb8gS4yTra4="
+      },
+      "description": {
+        "version": 0,
+        "algorithm": "AES_256_CBC_HMAC_SHA256",
+        "iv": "kvspmS9gRrKrEZVJ9yATuw==",
+        "ciphertext": "vdEOtCMXQ3E6nNr6idabtw==",
+        "signature": "UUsygRwn0g4sGhSCPTjPBn0zyf+v2lHvE5XH7S9TlHs="
+      },
+      "encryptions": [
+        {
+          "version": 0,
+          "algorithm": "PBKDF2_SHA1_AES_256_CBC_HMAC_SHA256",
+          "iv": "dyZshjLDah4dgINQbMt6Dw==",
+          "ciphertext": "0XulapqbMcNCG6j4KXfGFqsN11fqlq7Dbyc1ZJmr1zXNW5ZX90DCrBcYX1O855CO",
+          "signature": "ZozQ/w8rJtZyUUVaUE59uG7q++Xi+UYfVGTU9Gqxw+M="
+        }
+      ],
+      "secrets": [
+        {
+          "name": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "gjcB7kpEiqpRVmzeOgJHYQ==",
+            "ciphertext": "RcpMyv9mgLMWlmTNExicGQ==",
+            "signature": "5gA/C+/nXZ+8FEonDNQMEJ17iNAmFxL7qoiow8jub2A="
+          },
+          "description": {
+            "version": 0,
+            "algorithm": "AES_256_CBC_HMAC_SHA256",
+            "iv": "vpxxb3/gwM0GjB1nTQG7tA==",
+            "ciphertext": "fQlN8tRQkRGiNK4v8MWgsA==",
+            "signature": "4iAkZxap2/S3v+f4rNs/YO0RjH9oMel0OBFx3QoSHkU="
+          },
+          "properties": [
+            {
+              "name": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "aMrAlkW8cR90SAU+ckTqGw==",
+                "ciphertext": "B2aNkhwkk+JSiduOf9puyA==",
+                "signature": "u+5bIrQZz+FkOHwm7enkrm2Br+RqH0GNUFywtaGyk7A="
+              },
+              "value": {
+                "version": 0,
+                "algorithm": "AES_256_CBC_HMAC_SHA256",
+                "iv": "yrmiQkZbGO8GVmxZXAWevw==",
+                "ciphertext": "lfjwlFDTvuxgRVusGlnQtQ==",
+                "signature": "UreKud7W4rDzRO0J77xrT0zPSv+LedJoVd0VzG4cH98="
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

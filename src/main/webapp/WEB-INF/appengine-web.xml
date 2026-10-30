@@ -22,7 +22,12 @@
     <property name="appengine.use.EE8" value="true"/>
   </system-properties>
   <static-files>
-      <include path="/css/**" expiration="1d"/>
-      <include path="/js/**" expiration="1d"/>
+      <!-- always revalidate: mixing cached and fresh modules after a deploy would break the client -->
+      <include path="/css/**">
+          <http-header name="Cache-Control" value="no-cache"/>
+      </include>
+      <include path="/js/**">
+          <http-header name="Cache-Control" value="no-cache"/>
+      </include>
   </static-files>
 </appengine-web-app>

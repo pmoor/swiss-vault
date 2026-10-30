@@ -14,5 +14,9 @@ jobs:
           distribution: temurin
           java-version: 25
           cache: maven
-      - run: ./compile-js.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: type check client
+        run: npx --yes -p typescript@7.0.2 tsc -p tsconfig.json
       - run: mvn -B verify

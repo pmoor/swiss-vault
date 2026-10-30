@@ -77,7 +77,9 @@ class AuthCookieFactory {
     String value = String.format("%s:%d:%s",
         userId.asString(), creationTime.toEpochMilli(), BaseEncoding.base64().encode(signature));
 
-    String string = String.format("%s=%s; Max-Age=%d; HttpOnly; SameSite=Strict", COOKIE_NAME, value, COOKIE_EXPIRATION.getSeconds());
+    // Lax, not Strict: after picking an account in Google's account chooser, the redirect from the OAuth
+    // callback to "/" is part of a navigation started by Google's page, and would not carry a Strict cookie
+    String string = String.format("%s=%s; Max-Age=%d; HttpOnly; SameSite=Lax", COOKIE_NAME, value, COOKIE_EXPIRATION.getSeconds());
     if (secureOnly) {
       string += "; Secure";
     }
