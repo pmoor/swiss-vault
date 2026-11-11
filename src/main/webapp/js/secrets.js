@@ -39,7 +39,16 @@ export async function showSecrets(key) {
   const list = h('ul', {class: 'secretList'}, ...panes.map(pane => pane.element));
 
   // hides the secrets whose name and description do not contain every word typed
-  const search = h('input', {type: 'search', class: 'search', placeholder: 'Search', 'aria-label': 'Search secrets'});
+  const search = h('input', {
+    type: 'search',
+    class: 'search',
+    placeholder: 'Search',
+    'aria-label': 'Search secrets',
+    autocomplete: 'off',
+    autocorrect: 'off',
+    autocapitalize: 'off',
+    spellcheck: 'false',
+  });
   const filter = () => {
     const words = search.value.toLocaleLowerCase().split(/\s+/).filter(word => word);
     for (const pane of panes) {
@@ -84,8 +93,22 @@ class SecretPane {
     this.readOnlyFields = h('div', {class: 'secretTitle'},
         this.name, ' ', this.description, ' ', button('edit', () => this.showEditableFields(), 'button'));
 
-    this.nameInput = h('input', {type: 'text', class: 'secretName secretNameEdit'});
-    this.descriptionInput = h('input', {type: 'text', class: 'secretDescription secretDescriptionEdit'});
+    this.nameInput = h('input', {
+      type: 'text',
+      class: 'secretName secretNameEdit',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+    });
+    this.descriptionInput = h('input', {
+      type: 'text',
+      class: 'secretDescription secretDescriptionEdit',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+    });
     this.editableFields = h('div', {class: 'secretTitle'},
         this.nameInput, this.descriptionInput, button('save', () => this.save(), 'button'));
 
@@ -204,8 +227,24 @@ class PropertyPane {
     this.readOnlyFields = h('div', {},
         this.name, ' ', this.value, ' ', button('edit', () => this.showEditableFields(), 'button'));
 
-    this.nameInput = h('input', {type: 'text', class: 'propertyName propertyNameEdit'});
-    this.valueInput = h('input', {type: 'text', class: 'propertyValue propertyValueEdit'});
+    this.nameInput = h('input', {
+      type: 'text',
+      class: 'propertyName propertyNameEdit',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+    });
+    this.valueInput = h('input', {
+      type: 'text',
+      class: 'propertyValue propertyValueEdit',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
+    });
     this.generateButton = button('generate', async () => {
       const password = await generatePassword();
       if (password !== null) {

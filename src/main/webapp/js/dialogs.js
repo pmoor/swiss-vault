@@ -23,8 +23,18 @@ import {Key} from './key.js';
 export function askPassphrase() {
   return new Promise(resolve => {
     const dialog = new Dialog('Enter Passphrase');
-    const input = h('input', {type: 'password', size: '24', name: 'passphrase'});
-    const form = h('form', {}, input, h('input', {type: 'submit', value: 'OK'}));
+    const input = h('input', {
+      type: 'password',
+      size: '24',
+      name: 'passphrase',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
+    });
+    const form = h('form', {autocomplete: 'off'}, input, h('input', {type: 'submit', value: 'OK'}));
     form.addEventListener('submit', event => {
       event.preventDefault();
       dialog.close();
@@ -82,11 +92,47 @@ export function createKey() {
   return new Promise(resolve => {
     const dialog = new Dialog('New Key');
     const error = h('div', {class: 'error'});
-    const name = h('input', {type: 'text', size: '24', name: 'name'});
-    const description = h('input', {type: 'text', size: '24', name: 'description'});
-    const passphrase1 = h('input', {type: 'password', size: '24', name: 'passphrase1'});
-    const passphrase2 = h('input', {type: 'password', size: '24', name: 'passphrase2'});
-    const form = h('form', {},
+    const name = h('input', {
+      type: 'text',
+      size: '24',
+      name: 'name',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+    });
+    const description = h('input', {
+      type: 'text',
+      size: '24',
+      name: 'description',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+    });
+    const passphrase1 = h('input', {
+      type: 'password',
+      size: '24',
+      name: 'passphrase1',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
+    });
+    const passphrase2 = h('input', {
+      type: 'password',
+      size: '24',
+      name: 'passphrase2',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
+    });
+    const form = h('form', {autocomplete: 'off'},
         h('label', {}, 'Name', name), h('br'),
         h('label', {}, 'Description', description), h('br'),
         h('label', {}, 'Passphrase', passphrase1), h('br'),
@@ -125,7 +171,17 @@ export function editKey(key) {
     const dialog = new Dialog('Edit Key');
     // remembered so the key can be unlocked again after saving changes
     let passphrase = '';
-    const passphraseInput = h('input', {type: 'password', size: '24', name: 'passphrase'});
+    const passphraseInput = h('input', {
+      type: 'password',
+      size: '24',
+      name: 'passphrase',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
+    });
     const encryptionList = h('ul');
     const newEncryptionArea = h('div');
 
@@ -156,7 +212,17 @@ export function editKey(key) {
 
       newEncryptionArea.replaceChildren();
       if (key.isUnlocked()) {
-        const newPassphrase = h('input', {type: 'password', size: '24', name: 'new-passphrase'});
+        const newPassphrase = h('input', {
+          type: 'password',
+          size: '24',
+          name: 'new-passphrase',
+          autocomplete: 'off',
+          autocorrect: 'off',
+          autocapitalize: 'off',
+          spellcheck: 'false',
+          'data-1p-ignore': '',
+          'data-lpignore': 'true',
+        });
         newEncryptionArea.append(h('label', {}, 'Add Passphrase', newPassphrase), button('add', () => {
           const value = newPassphrase.value;
           newPassphrase.value = '';
@@ -237,6 +303,12 @@ export function generatePassword() {
       readonly: '',
       class: 'generatedPassword',
       'aria-label': 'Generated password',
+      autocomplete: 'off',
+      autocorrect: 'off',
+      autocapitalize: 'off',
+      spellcheck: 'false',
+      'data-1p-ignore': '',
+      'data-lpignore': 'true',
     });
     const lengthDisplay = h('span', {class: 'lengthDisplay'}, '12');
     const lengthSlider = h('input', {
@@ -261,7 +333,7 @@ export function generatePassword() {
     });
     specialCheckbox.addEventListener('change', update);
 
-    const form = h('form', {},
+    const form = h('form', {autocomplete: 'off'},
         h('div', {class: 'generatorRow'}, passwordInput, ' ', button('regenerate', update, 'dialog-button')),
         h('div', {class: 'generatorRow'}, h('label', {}, 'Length: ', lengthDisplay, h('br'), lengthSlider)),
         h('div', {class: 'generatorRow'}, h('label', {}, specialCheckbox, ' Special characters')),
