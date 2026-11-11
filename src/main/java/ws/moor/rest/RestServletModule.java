@@ -98,7 +98,7 @@ public abstract class RestServletModule extends AbstractModule {
     return new FilterMatcher(filter, types);
   }
 
-  private ActionMatcher getActionMatcher(Class<? extends RestAction> actionClass) {
+  ActionMatcher getActionMatcher(Class<? extends RestAction> actionClass) {
     Get getAnnotation = actionClass.getAnnotation(Get.class);
     if (getAnnotation != null) {
       return new ActionMatcher(Verb.GET, getAnnotation.path(), actionClass);
@@ -122,7 +122,7 @@ public abstract class RestServletModule extends AbstractModule {
     throw new IllegalArgumentException("no annotation found on " + actionClass.getName());
   }
 
-  private static class RestServlet extends HttpServlet {
+  static class RestServlet extends HttpServlet {
 
     private static final Logger logger = Logger.getLogger(RestServlet.class.getName());
 
@@ -155,25 +155,28 @@ public abstract class RestServletModule extends AbstractModule {
     }
   
     private void doVerb(Verb verb, HttpServletRequest req, HttpServletResponse resp) throws IOException {
-      for (ActionMatcher matcher : matchers) {
-        RestCallContext context = matcher.match(verb, req.getPathInfo());
-        if (context != null) {
-          req.setAttribute(
-              Key.get(RestCallContext.class).toString(), context);
-          try {
-            invocatorProvider.get().invoke();
-          } catch (RuntimeException e) {
-            logger.log(Level.WARNING, "low-level error - should not happen", e);
-            throw e;
+      String pathInfo = req.getPathInfo();
+      if (pathInfo != null) {
+        for (ActionMatcher matcher : matchers) {
+          RestCallContext context = matcher.match(verb, pathInfo);
+          if (context != null) {
+            req.setAttribute(
+                Key.get(RestCallContext.class).toString(), context);
+            try {
+              invocatorProvider.get().invoke();
+            } catch (RuntimeException e) {
+              logger.log(Level.WARNING, "low-level error - should not happen", e);
+              throw e;
+            }
+            return;
           }
-          return;
         }
       }
       resp.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
   }
 
-  private static class ActionMatcher {
+  static class ActionMatcher {
 
     private final List<String> parameterOrder;
     private final Pattern pathPattern;
@@ -198,7 +201,7 @@ public abstract class RestServletModule extends AbstractModule {
     }
 
     public RestCallContext match(Verb verb, String pathInfo) {
-      if (verb != this.verb) {
+      if (verb != this.verb || pathInfo == null) {
         return null;
       }
       Matcher matcher = pathPattern.matcher(pathInfo);

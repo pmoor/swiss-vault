@@ -236,6 +236,22 @@ public class RestCallInvocatorTest {
     }
   }
 
+  public static class ThrowingClassCastAction implements RestAction {
+    @Execute
+    public void execute() {
+      throw new ClassCastException("cannot cast JsonPrimitive to JsonObject");
+    }
+  }
+
+  public static class GsonClassCastAction implements RestAction {
+    @Execute
+    public void execute() {
+      JsonObject obj = new JsonObject();
+      obj.addProperty("prop", 123);
+      obj.getAsJsonObject("prop");
+    }
+  }
+
   public static class ThrowingNullPointerAction implements RestAction {
     @Execute
     public void execute() {
@@ -488,6 +504,72 @@ public class RestCallInvocatorTest {
 
     assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(response.errorMessage).isEqualTo("illegal state in action");
+  }
+
+  @Test
+  public void testClassCastExceptionRollsBackTransactionAndReturns400() {
+    FakeRequest request = new FakeRequest();
+    FakeResponse response = new FakeResponse();
+    FakeTransaction transaction = new FakeTransaction();
+    request.attributes.put(Key.get(Transaction.class).toString(), transaction);
+
+    RestCallInvocator invocator = createInvocator(
+        ThrowingClassCastAction.class,
+        ImmutableList.of(TransactionFilter.class),
+        request,
+        response);
+
+    invocator.invoke();
+
+    assertThat(transaction.rolledBack).isTrue();
+    assertThat(transaction.isActive()).isFalse();
+    assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+    assertThat(response.errorMessage).isEqualTo("cannot cast JsonPrimitive to JsonObject");
+  }
+
+  @Test
+  public void testGsonClassCastExceptionRollsBackTransactionAndReturns400() {
+    FakeRequest request = new FakeRequest();
+    FakeResponse response = new FakeResponse();
+    FakeTransaction transaction = new FakeTransaction();
+    request.attributes.put(Key.get(Transaction.class).toString(), transaction);
+
+    RestCallInvocator invocator = createInvocator(
+        GsonClassCastAction.class,
+        ImmutableList.of(TransactionFilter.class),
+        request,
+        response);
+
+    invocator.invoke();
+
+    assertThat(transaction.rolledBack).isTrue();
+    assertThat(transaction.isActive()).isFalse();
+    assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void testProvisionExceptionWrappingClassCastExceptionReturns400() {
+    FakeRequest request = new FakeRequest();
+    FakeResponse response = new FakeResponse();
+
+    Module failingProviderModule = new AbstractModule() {
+      @Provides
+      CustomParam provideCustomParam() {
+        throw new ClassCastException("provider cast exception");
+      }
+    };
+
+    RestCallInvocator invocator = createInvocator(
+        ActionWithInjectedParam.class,
+        ImmutableList.of(),
+        request,
+        response,
+        failingProviderModule);
+
+    invocator.invoke();
+
+    assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+    assertThat(response.errorMessage).isEqualTo("provider cast exception");
   }
 
   @Test
