@@ -57,10 +57,11 @@ public class AuthCookieFactoryTest {
   public void testSecureFlagToggle() {
     String insecureHeader = factoryInsecure.createCookieString(UserId.fromString("user-1"));
     assertThat(insecureHeader).doesNotContain("Secure");
+    assertThat(insecureHeader).startsWith("auth=");
 
     String secureHeader = factorySecure.createCookieString(UserId.fromString("user-1"));
     assertThat(secureHeader).endsWith("; Secure");
-    assertThat(secureHeader).matches("^auth=[^;]+; Path=/; Max-Age=3600; HttpOnly; SameSite=Lax; Secure$");
+    assertThat(secureHeader).matches("^__Host-auth=[^;]+; Path=/; Max-Age=3600; HttpOnly; SameSite=Lax; Secure$");
   }
 
   @Test
@@ -72,7 +73,18 @@ public class AuthCookieFactoryTest {
   @Test
   public void testCreateClearCookieStringSecure() {
     String clearCookie = factorySecure.createClearCookieString();
-    assertThat(clearCookie).isEqualTo("auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
+    assertThat(clearCookie).isEqualTo("__Host-auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
+  }
+
+  @Test
+  public void testCreateTokenValue() {
+    UserId user = UserId.fromString("user-token");
+    String token = factoryInsecure.createTokenValue(user);
+    assertThat(token).startsWith("user-token:");
+    assertThat(token.split(":")).hasLength(3);
+
+    String cookieHeader = factoryInsecure.createCookieString(user);
+    assertThat(cookieHeader).startsWith("auth=" + token + ";");
   }
 
   @Test
@@ -271,12 +283,56 @@ public class AuthCookieFactoryTest {
     assertThat(factoryInsecure.extractUserId(req)).isEqualTo(user);
   }
 
+  @Test
+  public void testMultiCookieIterationStaleShadowCookieBeforeValid() {
+    UserId user = UserId.fromString("user-shadow-test");
+    String validCookieHeader = factoryInsecure.createCookieString(user);
+    Cookie validCookie = parseCookie(validCookieHeader);
+
+    // Create a request where the first "auth" cookie is invalid/tampered, and the second is valid
+    HttpServletRequest req = createFakeRequest(
+        new Cookie("auth", "tampered:12345:badsignature"),
+        new Cookie("auth", "user-other:99999:invalidsig"),
+        validCookie);
+
+    assertThat(factoryInsecure.extractUserId(req)).isEqualTo(user);
+  }
+
+  @Test
+  public void testMultiCookieIterationSecureStaleShadowCookieBeforeValid() {
+    UserId user = UserId.fromString("user-secure-shadow");
+    String validHeader = factorySecure.createCookieString(user);
+    Cookie validSecureCookie = parseCookie(validHeader);
+
+    HttpServletRequest req = createFakeRequest(
+        new Cookie("__Host-auth", "tampered:12345:badsignature"),
+        validSecureCookie);
+
+    assertThat(factorySecure.extractUserId(req)).isEqualTo(user);
+  }
+
+  @Test
+  public void testCookieNameIsolationBetweenSecureAndInsecure() {
+    UserId user = UserId.fromString("user-isolation");
+    String insecureHeader = factoryInsecure.createCookieString(user);
+    String secureHeader = factorySecure.createCookieString(user);
+
+    Cookie insecureCookie = parseCookie(insecureHeader);
+    Cookie secureCookie = parseCookie(secureHeader);
+
+    // Insecure factory ignores __Host-auth
+    assertThat(factoryInsecure.extractUserId(createFakeRequest(secureCookie))).isNull();
+
+    // Secure factory ignores auth without __Host-
+    assertThat(factorySecure.extractUserId(createFakeRequest(insecureCookie))).isNull();
+  }
+
   private static Cookie parseCookie(String cookieHeader) {
-    String prefix = "auth=";
-    int start = cookieHeader.indexOf(prefix);
-    int end = cookieHeader.indexOf(';', start);
-    String value = cookieHeader.substring(start + prefix.length(), end);
-    return new Cookie("auth", value);
+    int eqIndex = cookieHeader.indexOf('=');
+    int semiIndex = cookieHeader.indexOf(';', eqIndex);
+    String name = cookieHeader.substring(0, eqIndex);
+    String value = cookieHeader.substring(eqIndex + 1, semiIndex != -1 ? semiIndex : cookieHeader.length());
+    return new Cookie(name, value);
   }
 
   private static HttpServletRequest createFakeRequest(Cookie... cookies) {

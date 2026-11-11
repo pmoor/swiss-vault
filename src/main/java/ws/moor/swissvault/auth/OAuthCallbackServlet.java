@@ -26,11 +26,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Singleton
 class OAuthCallbackServlet extends HttpServlet {
 
   public static final String PATH = "/oauth2callback";
+  private static final Logger logger = Logger.getLogger(OAuthCallbackServlet.class.getName());
 
   private final AuthHelper authHelper;
   private final OAuthStateHelper oAuthStateHelper;
@@ -65,7 +68,15 @@ class OAuthCallbackServlet extends HttpServlet {
       return;
     }
 
-    UserId userId = authHelper.determineUserId(code);
+    UserId userId;
+    try {
+      userId = authHelper.determineUserId(code);
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Failed to verify authorization code", e);
+      resp.sendError(HttpServletResponse.SC_BAD_GATEWAY, "Failed to verify authorization code");
+      return;
+    }
+
     String cookie = authCookieFactory.createCookieString(userId);
 
     resp.addHeader(HttpHeaders.SET_COOKIE, cookie);

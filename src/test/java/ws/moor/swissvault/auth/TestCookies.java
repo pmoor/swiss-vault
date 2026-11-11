@@ -15,8 +15,7 @@ public final class TestCookies {
 
   /** @return the value of the "auth" cookie that logs in the given user */
   public static String authCookieValue(String userId) {
-    String header = new AuthCookieFactory(false, DEVELOPMENT_HMAC_KEY, Clock.systemUTC())
-        .createCookieString(UserId.fromString(userId));
-    return header.substring("auth=".length(), header.indexOf(';'));
+    return new AuthCookieFactory(false, DEVELOPMENT_HMAC_KEY, Clock.systemUTC())
+        .createTokenValue(UserId.fromString(userId));
   }
 }

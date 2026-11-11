@@ -57,8 +57,29 @@ class ClientDevTest(unittest.TestCase):
     loaded = client.load_cached_cookie(test_server)
     self.assertEqual(cookie, loaded)
 
+    # Test stripping both auth= and __Host-auth= prefixes
+    client.save_cached_cookie(test_server, f"auth={cookie}")
+    self.assertEqual(cookie, client.load_cached_cookie(test_server))
+
+    client.save_cached_cookie(test_server, f"__Host-auth={cookie}")
+    self.assertEqual(cookie, client.load_cached_cookie(test_server))
+
     client.clear_cached_cookie(test_server)
     self.assertIsNone(client.load_cached_cookie(test_server))
+
+  def test_authenticated_connection_cookie_scheme(self):
+    user_id = f"test-{uuid.uuid4()}"
+    token = client.make_dev_cookie(user_id)
+
+    http_conn = client.AuthenticatedConnection(
+        server_url="http://localhost:8080", auth_cookie=token)
+    self.assertEqual(f"auth={token}", http_conn._headers["Cookie"])
+    http_conn.close()
+
+    https_conn = client.AuthenticatedConnection(
+        server_url="https://localhost:8443", auth_cookie=f"__Host-auth={token}")
+    self.assertEqual(f"__Host-auth={token}", https_conn._headers["Cookie"])
+    https_conn.close()
 
   def test_value_encryption_aes_gcm_and_legacy_cbc(self):
     secret_key = crypto.newRandomSecretKey()
@@ -207,14 +228,16 @@ class ClientDevTest(unittest.TestCase):
     resp = conn.getresponse()
     self.assertEqual(302, resp.status)
     loc = resp.getheader("Location")
-    self.assertIn("accounts.google.com/o/oauth2/auth", loc)
+    self.assertIn("accounts.google.com/o/oauth2/v2/auth", loc)
+    self.assertIn("scope=openid", loc)
     self.assertIn("state=CLI_LOGIN:", loc)
     self.assertEqual("no-store", resp.getheader("Cache-Control"))
-    self.assertEqual("max-age=7776000; includeSubDomains", resp.getheader("Strict-Transport-Security"))
+    self.assertEqual("max-age=31536000; includeSubDomains", resp.getheader("Strict-Transport-Security"))
     self.assertEqual("nosniff", resp.getheader("X-Content-Type-Options"))
     csp_redirect = resp.getheader("Content-Security-Policy")
     self.assertIsNotNone(csp_redirect)
     self.assertIn("frame-ancestors 'none'", csp_redirect)
+    self.assertIn("form-action 'self'", csp_redirect)
     set_cookie = resp.getheader("Set-Cookie")
     self.assertIsNotNone(set_cookie)
     self.assertIn("oauth_state=CLI_LOGIN:", set_cookie)
@@ -242,34 +265,65 @@ class ClientDevTest(unittest.TestCase):
     self.assertEqual(400, resp.status)
     resp.read()
 
-    # Authenticated GET /cli-login shows HTML with auth token in textarea
+    # Authenticated GET /cli-login shows HTML confirmation form (does NOT mint token yet)
     user_id = f"test-{uuid.uuid4()}"
     auth_cookie = client.make_dev_cookie(user_id)
     conn.request("GET", "/cli-login", headers={"Cookie": f"auth={auth_cookie}"})
     resp = conn.getresponse()
     self.assertEqual(200, resp.status)
     self.assertEqual("no-store", resp.getheader("Cache-Control"))
-    self.assertEqual("max-age=7776000; includeSubDomains", resp.getheader("Strict-Transport-Security"))
+    self.assertEqual("max-age=31536000; includeSubDomains", resp.getheader("Strict-Transport-Security"))
     self.assertEqual("nosniff", resp.getheader("X-Content-Type-Options"))
     csp = resp.getheader("Content-Security-Policy")
     self.assertIsNotNone(csp)
     self.assertIn("frame-ancestors 'none'", csp)
     self.assertIn("default-src 'none'", csp)
     self.assertIn("base-uri 'none'", csp)
-    self.assertIn("form-action 'none'", csp)
+    self.assertIn("form-action 'self'", csp)
+    self.assertNotIn("form-action 'none'", csp)
     self.assertIn("style-src 'self'", csp)
     self.assertNotIn("'unsafe-inline'", csp)
     body = resp.read().decode("utf-8")
-    self.assertIn("CLI Authentication Token", body)
+    self.assertIn("CLI Authentication", body)
     self.assertIn(user_id, body)
-    # The textarea contains a freshly generated auth cookie for user_id
-    self.assertIn(f">{user_id}:", body)
-    self.assertIn("Expires:", body)
-    self.assertIn("minutes)", body)
-    self.assertNotIn("onclick", body)
-    self.assertNotIn("<style", body)
-    self.assertNotIn("<link", body)
-    self.assertIn('<textarea readonly rows="4" cols="80">', body)
+    self.assertIn('<form method="post" action="/cli-login">', body)
+    self.assertIn('<button type="submit">Generate CLI Token</button>', body)
+    self.assertNotIn("<textarea", body)
+
+    # POST /cli-login with cross-site Sec-Fetch-Site returns 403 Forbidden
+    conn.request("POST", "/cli-login",
+                 headers={"Cookie": f"auth={auth_cookie}", "Sec-Fetch-Site": "cross-site"})
+    resp = conn.getresponse()
+    self.assertEqual(403, resp.status)
+    resp.read()
+
+    # POST /cli-login unauthenticated returns 403 Forbidden
+    conn.request("POST", "/cli-login", headers={"Sec-Fetch-Site": "same-origin"})
+    resp = conn.getresponse()
+    self.assertEqual(403, resp.status)
+    resp.read()
+
+    # Authenticated POST /cli-login mints token and shows textarea
+    conn.request("POST", "/cli-login",
+                 headers={"Cookie": f"auth={auth_cookie}", "Sec-Fetch-Site": "same-origin"})
+    resp = conn.getresponse()
+    self.assertEqual(200, resp.status)
+    self.assertEqual("no-store", resp.getheader("Cache-Control"))
+    self.assertEqual("max-age=31536000; includeSubDomains", resp.getheader("Strict-Transport-Security"))
+    self.assertEqual("nosniff", resp.getheader("X-Content-Type-Options"))
+    csp_post = resp.getheader("Content-Security-Policy")
+    self.assertIsNotNone(csp_post)
+    self.assertIn("form-action 'self'", csp_post)
+    post_body = resp.read().decode("utf-8")
+    self.assertIn("CLI Authentication Token", post_body)
+    self.assertIn(user_id, post_body)
+    self.assertIn(f">{user_id}:", post_body)
+    self.assertIn("Expires:", post_body)
+    self.assertIn("minutes)", post_body)
+    self.assertNotIn("onclick", post_body)
+    self.assertNotIn("<style", post_body)
+    self.assertNotIn("<link", post_body)
+    self.assertIn('<textarea readonly rows="4" cols="80">', post_body)
 
     conn.close()
 

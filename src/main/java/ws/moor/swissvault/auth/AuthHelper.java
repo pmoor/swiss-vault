@@ -45,9 +45,7 @@ public class AuthHelper {
 
   private static final Logger logger = Logger.getLogger(AuthHelper.class.getName());
   private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(10);
-
-  private static final URI PROFILE_SCOPE = URI.create("https://www.googleapis.com/auth/userinfo.profile");
-  private static final Set<URI> SCOPES = ImmutableSet.of(PROFILE_SCOPE);
+  private static final String SCOPE = "openid";
 
   private final HttpClient httpClient;
   private final JsonParser jsonParser;
@@ -79,12 +77,12 @@ public class AuthHelper {
     parameters.put("response_type", "code");
     parameters.put("client_id", clientId);
     parameters.put("redirect_uri", uriBuilder.forPath(OAuthCallbackServlet.PATH).toString());
-    parameters.put("scope", Joiner.on(" ").join(SCOPES));
+    parameters.put("scope", SCOPE);
     parameters.put("access_type", "online");
     parameters.put("state", state);
 
     try {
-      return new URI("https", "accounts.google.com", "/o/oauth2/auth", buildKeyValueString(parameters, false), null);
+      return new URI("https", "accounts.google.com", "/o/oauth2/v2/auth", buildKeyValueString(parameters, false), null);
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException(e);
     }
@@ -99,7 +97,7 @@ public class AuthHelper {
     parameters.put("grant_type", "authorization_code");
 
     HttpRequest tokenRequest = HttpRequest.newBuilder()
-        .uri(URI.create("https://accounts.google.com/o/oauth2/token"))
+        .uri(URI.create("https://oauth2.googleapis.com/token"))
         .timeout(HTTP_TIMEOUT)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .POST(HttpRequest.BodyPublishers.ofString(buildKeyValueString(parameters, true)))
@@ -107,14 +105,14 @@ public class AuthHelper {
     String accessToken = sendAndExtractField(tokenRequest, "token", "access_token");
 
     HttpRequest userinfoRequest = HttpRequest.newBuilder()
-        .uri(URI.create("https://www.googleapis.com/oauth2/v1/userinfo"))
+        .uri(URI.create("https://openidconnect.googleapis.com/v1/userinfo"))
         .timeout(HTTP_TIMEOUT)
         .header("Authorization", String.format("Bearer %s", accessToken))
         .GET()
         .build();
-    String id = sendAndExtractField(userinfoRequest, "userinfo", "id");
+    String sub = sendAndExtractField(userinfoRequest, "userinfo", "sub");
 
-    return UserId.fromString(id);
+    return UserId.fromString(sub);
   }
 
   private String sendAndExtractField(HttpRequest request, String requestType, String fieldName) throws IOException {
@@ -140,6 +138,9 @@ public class AuthHelper {
       }
       if (!object.get(fieldName).isJsonPrimitive()) {
         throw new IOException("OAuth " + requestType + " response " + fieldName + " is not a primitive");
+      }
+      if (!object.get(fieldName).getAsJsonPrimitive().isString()) {
+        throw new IOException("OAuth " + requestType + " response " + fieldName + " is not a string");
       }
       String value = object.get(fieldName).getAsString();
       if (value.isEmpty()) {

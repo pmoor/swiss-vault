@@ -36,6 +36,9 @@ class CliLoginServlet extends HttpServlet {
 
   public static final String PATH = "/cli-login";
 
+  private static final String CONTENT_SECURITY_POLICY_VALUE =
+      "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+
   private static final DateTimeFormatter EXPIRATION_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC);
 
@@ -60,6 +63,9 @@ class CliLoginServlet extends HttpServlet {
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    resp.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+    resp.setHeader(HttpHeaders.CONTENT_SECURITY_POLICY, CONTENT_SECURITY_POLICY_VALUE);
+
     Optional<UserId> userId = userIdProvider.get();
 
     if (!userId.isPresent()) {
@@ -70,8 +76,35 @@ class CliLoginServlet extends HttpServlet {
     }
 
     resp.setContentType("text/html; charset=UTF-8");
-    String cookieHeader = authCookieFactory.createCookieString(userId.get());
-    String authValue = cookieHeader.substring("auth=".length(), cookieHeader.indexOf(';'));
+    PrintWriter out = resp.getWriter();
+    out.println("<!doctype html>");
+    out.println("<html><head><meta charset=\"utf-8\"><title>Swiss Vault - CLI Login</title></head>");
+    out.println("<body>");
+    out.println("<h2>CLI Authentication</h2>");
+    out.println("<p>Logged in as " + escapeHtml(userId.get().asString()) + "</p>");
+    out.println("<form method=\"post\" action=\"/cli-login\"><button type=\"submit\">Generate CLI Token</button></form>");
+    out.println("</body></html>");
+  }
+
+  @Override
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    resp.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+    resp.setHeader(HttpHeaders.CONTENT_SECURITY_POLICY, CONTENT_SECURITY_POLICY_VALUE);
+
+    String secFetchSite = req.getHeader("Sec-Fetch-Site");
+    if (secFetchSite != null && !secFetchSite.trim().equalsIgnoreCase("same-origin")) {
+      resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+      return;
+    }
+
+    Optional<UserId> userId = userIdProvider.get();
+    if (!userId.isPresent()) {
+      resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+      return;
+    }
+
+    resp.setContentType("text/html; charset=UTF-8");
+    String authValue = authCookieFactory.createTokenValue(userId.get());
 
     Instant now = clock.instant();
     Instant expiresAt = now.plus(authCookieFactory.getCookieExpiration());

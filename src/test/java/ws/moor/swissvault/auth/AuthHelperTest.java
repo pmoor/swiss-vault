@@ -49,7 +49,7 @@ public class AuthHelperTest {
   @Test
   public void testHappyPath() throws Exception {
     httpClient.enqueueResponse(200, "{\"access_token\": \"ya29.valid_token_abc\"}");
-    httpClient.enqueueResponse(200, "{\"id\": \"user-google-12345\"}");
+    httpClient.enqueueResponse(200, "{\"sub\": \"user-google-12345\"}");
 
     UserId userId = authHelper.determineUserId("valid_code");
 
@@ -59,13 +59,13 @@ public class AuthHelperTest {
     assertThat(sent).hasSize(2);
 
     HttpRequest tokenReq = sent.get(0);
-    assertThat(tokenReq.uri()).isEqualTo(URI.create("https://accounts.google.com/o/oauth2/token"));
+    assertThat(tokenReq.uri()).isEqualTo(URI.create("https://oauth2.googleapis.com/token"));
     assertThat(tokenReq.method()).isEqualTo("POST");
     assertThat(tokenReq.timeout()).isEqualTo(Optional.of(Duration.ofSeconds(10)));
     assertThat(tokenReq.headers().firstValue("Content-Type")).isEqualTo(Optional.of("application/x-www-form-urlencoded"));
 
     HttpRequest userinfoReq = sent.get(1);
-    assertThat(userinfoReq.uri()).isEqualTo(URI.create("https://www.googleapis.com/oauth2/v1/userinfo"));
+    assertThat(userinfoReq.uri()).isEqualTo(URI.create("https://openidconnect.googleapis.com/v1/userinfo"));
     assertThat(userinfoReq.method()).isEqualTo("GET");
     assertThat(userinfoReq.timeout()).isEqualTo(Optional.of(Duration.ofSeconds(10)));
     assertThat(userinfoReq.headers().firstValue("Authorization")).isEqualTo(Optional.of("Bearer ya29.valid_token_abc"));
@@ -133,14 +133,16 @@ public class AuthHelperTest {
   }
 
   @Test
-  public void testMissingIdInUserinfoResponseThrowsIOException() {
+  public void testMissingOrInvalidSubInUserinfoResponseThrowsIOException() {
     String[] invalidUserinfoBodies = {
         "{}",
         "{\"name\": \"Alice\"}",
-        "{\"id\": null}",
-        "{\"id\": \"\"}",
-        "{\"id\": {}}",
-        "{\"id\": [\"user-id\"]}"
+        "{\"sub\": null}",
+        "{\"sub\": \"\"}",
+        "{\"sub\": {}}",
+        "{\"sub\": [\"user-id\"]}",
+        "{\"sub\": 12345}",
+        "{\"sub\": true}"
     };
 
     for (String body : invalidUserinfoBodies) {
@@ -192,14 +194,16 @@ public class AuthHelperTest {
     URI uriWithStateAndNonce = authHelper.createRedirectUri(OAuthState.HOME, "random-nonce-123");
     assertThat(uriWithStateAndNonce.getScheme()).isEqualTo("https");
     assertThat(uriWithStateAndNonce.getHost()).isEqualTo("accounts.google.com");
-    assertThat(uriWithStateAndNonce.getPath()).isEqualTo("/o/oauth2/auth");
+    assertThat(uriWithStateAndNonce.getPath()).isEqualTo("/o/oauth2/v2/auth");
     assertThat(uriWithStateAndNonce.getQuery()).contains("client_id=" + CLIENT_ID);
+    assertThat(uriWithStateAndNonce.getQuery()).contains("scope=openid");
     assertThat(uriWithStateAndNonce.getQuery()).contains("state=HOME:random-nonce-123");
     assertThat(uriWithStateAndNonce.getQuery()).contains("response_type=code");
     assertThat(uriWithStateAndNonce.getQuery()).contains("redirect_uri=http://localhost:8080/oauth2callback");
 
     URI uriCustom = authHelper.createRedirectUri("CUSTOM:xyz");
     assertThat(uriCustom.getQuery()).contains("state=CUSTOM:xyz");
+    assertThat(uriCustom.getPath()).isEqualTo("/o/oauth2/v2/auth");
   }
 
   private static class FakeHttpClient extends HttpClient {

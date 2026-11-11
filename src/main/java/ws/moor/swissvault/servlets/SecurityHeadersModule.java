@@ -39,7 +39,7 @@ public class SecurityHeadersModule extends ServletModule {
   @Singleton
   private static class SecurityHeadersFilter implements Filter {
 
-    private static final String STRICT_TRANSPORT_SECURITY_VALUE = "max-age=7776000; includeSubDomains";
+    private static final String STRICT_TRANSPORT_SECURITY_VALUE = "max-age=31536000; includeSubDomains";
     private static final String CONTENT_SECURITY_POLICY_VALUE =
         "default-src 'none'; script-src 'self'; style-src 'self'; "
             + "connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";

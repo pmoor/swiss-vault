@@ -151,6 +151,47 @@ public class OAuthCallbackServletTest {
   }
 
   @Test
+  public void testFailedDetermineUserIdReturns502BadGateway() throws Exception {
+    String state = stateHelper.createStateValue(OAuthState.HOME);
+    FakeResponse resp = new FakeResponse();
+    HttpServletRequest req = createFakeRequest(
+        Map.of("code", "invalid_code", "state", state),
+        new Cookie[]{new Cookie("oauth_state", state)});
+
+    servlet.doGet(req, resp.asHttpServletResponse());
+
+    assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_GATEWAY);
+    assertThat(resp.errorMessage).isEqualTo("Failed to verify authorization code");
+    assertThat(resp.redirectLocation).isNull();
+    assertThat(authHelper.determineUserIdCalled.get()).isTrue();
+  }
+
+  @Test
+  public void testSuccessfulCallbackSecureCookies() throws Exception {
+    OAuthStateHelper secureStateHelper = new OAuthStateHelper(true);
+    AuthCookieFactory secureCookieFactory = new AuthCookieFactory(true, HMAC_KEY, Clock.systemUTC());
+    OAuthCallbackServlet secureServlet = new OAuthCallbackServlet(
+        authHelper, secureStateHelper, secureCookieFactory, uriBuilder);
+
+    String state = secureStateHelper.createStateValue(OAuthState.HOME);
+    FakeResponse resp = new FakeResponse();
+    HttpServletRequest req = createFakeRequest(
+        Map.of("code", "valid_code", "state", state),
+        new Cookie[]{new Cookie("__Host-oauth_state", state)});
+
+    secureServlet.doGet(req, resp.asHttpServletResponse());
+
+    assertThat(resp.errorCode).isNull();
+    assertThat(resp.redirectLocation).isEqualTo("http://localhost:8080/");
+
+    List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
+    assertThat(setCookies).hasSize(2);
+    assertThat(setCookies.get(0)).isEqualTo("__Host-oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure");
+    assertThat(setCookies.get(1)).startsWith("__Host-auth=user-123:");
+    assertThat(setCookies.get(1)).endsWith("; Secure");
+  }
+
+  @Test
   public void testSuccessfulCallbackForCliLogin() throws Exception {
     String state = stateHelper.createStateValue(OAuthState.CLI_LOGIN);
     FakeResponse resp = new FakeResponse();

@@ -33,11 +33,13 @@ import java.time.Instant;
 
 class AuthCookieFactory {
 
-  private static final String COOKIE_NAME = "auth";
+  public static final String INSECURE_COOKIE_NAME = "auth";
+  public static final String SECURE_COOKIE_NAME = "__Host-auth";
   private static final Duration COOKIE_EXPIRATION = Duration.ofMinutes(60);
   private static final Duration CLOCK_SKEW_TOLERANCE = Duration.ofMinutes(1);
 
   private final boolean secureOnly;
+  private final String cookieName;
   private final SecretKeySpec hmacKey;
   private final Clock clock;
 
@@ -46,6 +48,7 @@ class AuthCookieFactory {
                     @Config("auth.hmac_key") SecretKeySpec hmacKey,
                     Clock clock) {
     this.secureOnly = secureOnly;
+    this.cookieName = secureOnly ? SECURE_COOKIE_NAME : INSECURE_COOKIE_NAME;
     this.hmacKey = hmacKey;
     this.clock = clock;
   }
@@ -54,13 +57,38 @@ class AuthCookieFactory {
     return COOKIE_EXPIRATION;
   }
 
+  public String getCookieName() {
+    return cookieName;
+  }
+
   public UserId extractUserId(HttpServletRequest request) {
-    Cookie cookie = findCookie(request);
-    if (cookie == null || cookie.getValue() == null) {
+    if (request == null) {
+      return null;
+    }
+    return extractUserId(request.getCookies());
+  }
+
+  public UserId extractUserId(Cookie[] cookies) {
+    if (cookies == null) {
+      return null;
+    }
+    for (Cookie cookie : cookies) {
+      if (cookieName.equals(cookie.getName())) {
+        UserId userId = validateCookieValue(cookie.getValue());
+        if (userId != null) {
+          return userId;
+        }
+      }
+    }
+    return null;
+  }
+
+  private UserId validateCookieValue(String cookieValue) {
+    if (cookieValue == null) {
       return null;
     }
 
-    String[] parts = cookie.getValue().split(":", -1);
+    String[] parts = cookieValue.split(":", -1);
     if (parts.length != 3 || parts[0].isEmpty()) {
       return null;
     }
@@ -84,16 +112,20 @@ class AuthCookieFactory {
     return null;
   }
 
-  public String createCookieString(UserId userId) {
+  public String createTokenValue(UserId userId) {
     Instant creationTime = clock.instant();
     byte[] signature = sign(userId, creationTime);
-    String value = String.format("%s:%d:%s",
+    return String.format("%s:%d:%s",
         userId.asString(), creationTime.toEpochMilli(), BaseEncoding.base64().encode(signature));
+  }
+
+  public String createCookieString(UserId userId) {
+    String value = createTokenValue(userId);
 
     // Lax, not Strict: after picking an account in Google's account chooser, the redirect from the OAuth
     // callback to "/" is part of a navigation started by Google's page, and would not carry a Strict cookie
     String string = String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax",
-        COOKIE_NAME, value, COOKIE_EXPIRATION.getSeconds());
+        cookieName, value, COOKIE_EXPIRATION.getSeconds());
     if (secureOnly) {
       string += "; Secure";
     }
@@ -101,7 +133,7 @@ class AuthCookieFactory {
   }
 
   public String createClearCookieString() {
-    String string = String.format("%s=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax", COOKIE_NAME);
+    String string = String.format("%s=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax", cookieName);
     if (secureOnly) {
       string += "; Secure";
     }
@@ -116,17 +148,5 @@ class AuthCookieFactory {
     } catch (GeneralSecurityException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private Cookie findCookie(HttpServletRequest request) {
-    Cookie[] cookies = request.getCookies();
-    if (cookies != null) {
-      for (Cookie cookie : cookies) {
-        if (COOKIE_NAME.equals(cookie.getName())) {
-          return cookie;
-        }
-      }
-    }
-    return null;
   }
 }

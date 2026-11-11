@@ -75,7 +75,7 @@ public class LogoutServletTest {
     servlet.doGet(req, resp.asHttpServletResponse());
 
     List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
-    assertThat(setCookies).containsExactly("auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
+    assertThat(setCookies).containsExactly("__Host-auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
     assertThat(resp.contentType).isEqualTo("text/html; charset=UTF-8");
 
     String html = resp.getOutput();

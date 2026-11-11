@@ -10,7 +10,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -31,10 +35,11 @@ public class EndToEndTest {
 
     assertThat(connection.getResponseCode()).isEqualTo(HttpURLConnection.HTTP_MOVED_TEMP);
     String location = connection.getHeaderField("Location");
-    assertThat(location).startsWith("https://accounts.google.com/o/oauth2/auth");
+    assertThat(location).startsWith("https://accounts.google.com/o/oauth2/v2/auth");
+    assertThat(location).contains("scope=openid");
     assertThat(location).contains("state=HOME:");
     assertThat(connection.getHeaderField("Cache-Control")).isEqualTo("no-store");
-    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=7776000; includeSubDomains");
+    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=31536000; includeSubDomains");
     assertThat(connection.getHeaderField("X-Content-Type-Options")).isEqualTo("nosniff");
     assertThat(connection.getHeaderField("Content-Security-Policy")).contains("frame-ancestors 'none'");
 
@@ -49,25 +54,65 @@ public class EndToEndTest {
   }
 
   @Test
-  public void cliLoginSecurityHeaders() throws IOException {
+  public void cliLoginSecurityHeaders() throws Exception {
     HttpURLConnection connection = (HttpURLConnection) new URL(DevServer.BASE_URL + "/cli-login").openConnection();
     connection.setRequestProperty("Cookie", "auth=" + TestCookies.authCookieValue("test-user-sv03"));
     connection.setInstanceFollowRedirects(false);
 
     assertThat(connection.getResponseCode()).isEqualTo(HttpURLConnection.HTTP_OK);
     assertThat(connection.getHeaderField("Cache-Control")).isEqualTo("no-store");
-    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=7776000; includeSubDomains");
+    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=31536000; includeSubDomains");
     assertThat(connection.getHeaderField("X-Content-Type-Options")).isEqualTo("nosniff");
     String csp = connection.getHeaderField("Content-Security-Policy");
     assertThat(csp).isNotNull();
     assertThat(csp).contains("frame-ancestors 'none'");
     assertThat(csp).contains("default-src 'none'");
     assertThat(csp).contains("base-uri 'none'");
-    assertThat(csp).contains("form-action 'none'");
+    assertThat(csp).contains("form-action 'self'");
+    assertThat(csp).doesNotContain("form-action 'none'");
     assertThat(csp).contains("style-src 'self'");
     assertThat(csp).doesNotContain("'unsafe-inline'");
 
+    StringBuilder body = new StringBuilder();
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        body.append(line).append("\n");
+      }
+    }
+    assertThat(body.toString()).contains("<form method=\"post\" action=\"/cli-login\">");
+    assertThat(body.toString()).contains("<button type=\"submit\">Generate CLI Token</button>");
+    assertThat(body.toString()).doesNotContain("<textarea");
+
     connection.disconnect();
+
+    // Now test POST /cli-login with Sec-Fetch-Site: same-origin
+    HttpClient httpClient = HttpClient.newHttpClient();
+    HttpRequest postRequest = HttpRequest.newBuilder()
+        .uri(URI.create(DevServer.BASE_URL + "/cli-login"))
+        .header("Cookie", "auth=" + TestCookies.authCookieValue("test-user-sv03"))
+        .header("Sec-Fetch-Site", "same-origin")
+        .POST(HttpRequest.BodyPublishers.noBody())
+        .build();
+    HttpResponse<String> postResponse = httpClient.send(postRequest, HttpResponse.BodyHandlers.ofString());
+
+    assertThat(postResponse.statusCode()).isEqualTo(HttpURLConnection.HTTP_OK);
+    assertThat(postResponse.headers().firstValue("Cache-Control").orElse("")).isEqualTo("no-store");
+    assertThat(postResponse.headers().firstValue("Strict-Transport-Security").orElse("")).isEqualTo("max-age=31536000; includeSubDomains");
+    String postCsp = postResponse.headers().firstValue("Content-Security-Policy").orElse("");
+    assertThat(postCsp).contains("form-action 'self'");
+    assertThat(postResponse.body()).contains("<textarea readonly rows=\"4\" cols=\"80\">");
+    assertThat(postResponse.body()).contains("test-user-sv03:");
+
+    // Test POST /cli-login with Sec-Fetch-Site: cross-site -> 403 Forbidden
+    HttpRequest crossSiteRequest = HttpRequest.newBuilder()
+        .uri(URI.create(DevServer.BASE_URL + "/cli-login"))
+        .header("Cookie", "auth=" + TestCookies.authCookieValue("test-user-sv03"))
+        .header("Sec-Fetch-Site", "cross-site")
+        .POST(HttpRequest.BodyPublishers.noBody())
+        .build();
+    HttpResponse<Void> crossSiteResponse = httpClient.send(crossSiteRequest, HttpResponse.BodyHandlers.discarding());
+    assertThat(crossSiteResponse.statusCode()).isEqualTo(HttpURLConnection.HTTP_FORBIDDEN);
   }
 
   @Test
@@ -77,7 +122,8 @@ public class EndToEndTest {
 
     assertThat(connection.getResponseCode()).isEqualTo(HttpURLConnection.HTTP_MOVED_TEMP);
     String location = connection.getHeaderField("Location");
-    assertThat(location).startsWith("https://accounts.google.com/o/oauth2/auth");
+    assertThat(location).startsWith("https://accounts.google.com/o/oauth2/v2/auth");
+    assertThat(location).contains("scope=openid");
     assertThat(location).contains("state=CLI_LOGIN:");
 
     String setCookie = connection.getHeaderField("Set-Cookie");
@@ -99,7 +145,7 @@ public class EndToEndTest {
     assertThat(connection.getResponseCode()).isEqualTo(HttpURLConnection.HTTP_OK);
     assertThat(connection.getContentType()).matches("(?i)text/html;\\s*charset=utf-8");
     assertThat(connection.getHeaderField("Cache-Control")).isEqualTo("no-store");
-    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=7776000; includeSubDomains");
+    assertThat(connection.getHeaderField("Strict-Transport-Security")).isEqualTo("max-age=31536000; includeSubDomains");
     assertThat(connection.getHeaderField("X-Content-Type-Options")).isEqualTo("nosniff");
 
     String setCookie = connection.getHeaderField("Set-Cookie");
