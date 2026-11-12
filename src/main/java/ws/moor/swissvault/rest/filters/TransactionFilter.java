@@ -21,9 +21,9 @@ import com.google.inject.Key;
 import ws.moor.rest.RestFilter;
 import ws.moor.rest.annotations.PostFilter;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class TransactionFilter implements RestFilter {

@@ -26,7 +26,7 @@ import ws.moor.testing.FakeHttpServletRequest;
 import ws.moor.testing.FakeHttpServletResponse;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Clock;

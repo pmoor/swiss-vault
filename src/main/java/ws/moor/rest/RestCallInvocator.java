@@ -30,7 +30,7 @@ import ws.moor.rest.annotations.PreFilter;
 import ws.moor.swissvault.domain.KeyNotFoundException;
 import ws.moor.swissvault.domain.PermissionDeniedException;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;

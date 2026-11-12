@@ -4,8 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;

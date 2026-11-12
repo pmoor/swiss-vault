@@ -20,10 +20,6 @@
   <automatic-scaling>
     <max-instances>1</max-instances>
   </automatic-scaling>
-  <system-properties>
-    <!-- keep javax.servlet (EE8) instead of the default jakarta.servlet (EE11) -->
-    <property name="appengine.use.EE8" value="true"/>
-  </system-properties>
   <static-files>
       <!-- always revalidate: mixing cached and fresh modules after a deploy would break the client -->
       <include path="/css/**">

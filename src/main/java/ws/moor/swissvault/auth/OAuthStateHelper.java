@@ -22,8 +22,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import ws.moor.swissvault.config.Config;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
