@@ -65,9 +65,9 @@ public class KeyRepository {
   }
 
   public DbKey newKey(Transaction transaction, UserId userId, JsonObject postData) {
-    EncryptedValue name = EncryptedValue.fromJsonObject(postData.getAsJsonObject("name"));
-    EncryptedValue description = EncryptedValue.fromJsonObject(postData.getAsJsonObject("description"));
-    List<EncryptedValue> encryptions = EncryptedValue.fromJsonArray(postData.getAsJsonArray("encryptions"));
+    EncryptedValue name = EncryptedValue.fromJsonObject(postData, "name");
+    EncryptedValue description = EncryptedValue.fromJsonObject(postData, "description");
+    List<EncryptedValue> encryptions = EncryptedValue.fromJsonArray(postData, "encryptions");
 
     DbKey key = DbKey.newDbSecretKey(name, description);
     ds.put(transaction, key.entity);
@@ -116,9 +116,9 @@ public class KeyRepository {
     Key keyKey = KeyFactory.createKey("Key", keyId);
     try {
       DbKey dbKey = new DbKey(ds.get(transaction, keyKey));
-      EncryptedValue name = EncryptedValue.fromJsonObject(json.getAsJsonObject("name"));
-      EncryptedValue description = EncryptedValue.fromJsonObject(json.getAsJsonObject("description"));
-      List<EncryptedValue> encryptions = EncryptedValue.fromJsonArray(json.getAsJsonArray("encryptions"));
+      EncryptedValue name = EncryptedValue.fromJsonObject(json, "name");
+      EncryptedValue description = EncryptedValue.fromJsonObject(json, "description");
+      List<EncryptedValue> encryptions = EncryptedValue.fromJsonArray(json, "encryptions");
 
       dbKey.update(name, description);
       ds.put(transaction, dbKey.entity);

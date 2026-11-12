@@ -231,6 +231,45 @@ public class KeyRepositoryTest {
     }
   }
 
+  @Test
+  public void newKey_malformedJsonThrowsIllegalArgument() {
+    UserId userId = UserId.fromString("user-1");
+    Transaction tx = ds.beginTransaction();
+    try {
+      JsonObject badJson = new JsonObject();
+      badJson.addProperty("name", "not-an-object");
+      IllegalArgumentException ex = assertThrows(
+          IllegalArgumentException.class,
+          () -> repository.newKey(tx, userId, badJson));
+      assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: name");
+    } finally {
+      tx.rollback();
+    }
+  }
+
+  @Test
+  public void updateKey_malformedJsonThrowsIllegalArgument() {
+    UserId userId = UserId.fromString("user-1");
+    Transaction createTx = ds.beginTransaction();
+    JsonObject initialJson = createKeyJson("Original Key", "Original Description", "original-secret");
+    DbKey createdKey = repository.newKey(createTx, userId, initialJson);
+    createTx.commit();
+
+    long keyId = createdKey.entity.getKey().getId();
+
+    Transaction tx = ds.beginTransaction();
+    try {
+      JsonObject badJson = new JsonObject();
+      badJson.addProperty("name", "not-an-object");
+      IllegalArgumentException ex = assertThrows(
+          IllegalArgumentException.class,
+          () -> repository.updateKey(tx, userId, keyId, badJson));
+      assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: name");
+    } finally {
+      tx.rollback();
+    }
+  }
+
   private static JsonObject createKeyJson(String name, String description, String encryptionData) {
     JsonObject json = new JsonObject();
     json.add("name", dummyEncryptedValue(name).toJsonObject());

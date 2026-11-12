@@ -56,10 +56,10 @@ public class UpdateSecret implements RestAction {
     DbSecret secret = secretRepository.getSecret(transaction, keyId, secretId);
     
     if (json.has("name")) {
-      secret.setName(EncryptedValue.fromJsonObject(json.getAsJsonObject("name")));
+      secret.setName(EncryptedValue.fromJsonObject(json, "name"));
     }
     if (json.has("description")) {
-      secret.setDescription(EncryptedValue.fromJsonObject(json.getAsJsonObject("description")));
+      secret.setDescription(EncryptedValue.fromJsonObject(json, "description"));
     }
     
     secretRepository.update(transaction, secret);

@@ -26,13 +26,13 @@ import ws.moor.rest.annotations.Get;
 import ws.moor.rest.annotations.Post;
 import ws.moor.rest.annotations.Put;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.Proxy;
+import ws.moor.testing.FakeHttpServletRequest;
+import ws.moor.testing.FakeHttpServletResponse;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -86,51 +86,6 @@ public class RestServletModuleTest {
 
   @Delete(path = "/delete")
   private static class DeleteAction implements RestAction {}
-
-  private static class FakeRequest {
-    private final String method;
-    private final String pathInfo;
-
-    FakeRequest(String method, String pathInfo) {
-      this.method = method;
-      this.pathInfo = pathInfo;
-    }
-
-    HttpServletRequest asHttpServletRequest() {
-      return (HttpServletRequest) Proxy.newProxyInstance(
-          HttpServletRequest.class.getClassLoader(),
-          new Class<?>[]{HttpServletRequest.class},
-          (proxy, method, args) -> {
-            String name = method.getName();
-            if ("getMethod".equals(name)) {
-              return this.method;
-            } else if ("getPathInfo".equals(name)) {
-              return this.pathInfo;
-            } else if ("setAttribute".equals(name) || "getAttribute".equals(name)) {
-              return null;
-            }
-            return null;
-          });
-    }
-  }
-
-  private static class FakeResponse {
-    Integer errorCode = null;
-
-    HttpServletResponse asHttpServletResponse() {
-      return (HttpServletResponse) Proxy.newProxyInstance(
-          HttpServletResponse.class.getClassLoader(),
-          new Class<?>[]{HttpServletResponse.class},
-          (proxy, method, args) -> {
-            String name = method.getName();
-            if ("sendError".equals(name)) {
-              errorCode = (Integer) args[0];
-              return null;
-            }
-            return null;
-          });
-    }
-  }
 
   @Test
   public void testFilterMatcherWithNoAnnotationsAppliesToAllActions() {
@@ -195,8 +150,8 @@ public class RestServletModuleTest {
       throw new AssertionError("invocator should not be called when pathInfo is null");
     });
 
-    FakeRequest request = new FakeRequest("GET", null);
-    FakeResponse response = new FakeResponse();
+    FakeHttpServletRequest request = new FakeHttpServletRequest("GET", null);
+    FakeHttpServletResponse response = new FakeHttpServletResponse();
 
     servlet.doGet(request.asHttpServletRequest(), response.asHttpServletResponse());
 
@@ -216,21 +171,21 @@ public class RestServletModuleTest {
           throw new AssertionError("invocator should not be called when pathInfo is null");
         });
 
-    FakeRequest request = new FakeRequest("GET", null);
+    FakeHttpServletRequest request = new FakeHttpServletRequest("GET", null);
 
-    FakeResponse getResponse = new FakeResponse();
+    FakeHttpServletResponse getResponse = new FakeHttpServletResponse();
     servlet.doGet(request.asHttpServletRequest(), getResponse.asHttpServletResponse());
     assertThat(getResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
 
-    FakeResponse postResponse = new FakeResponse();
+    FakeHttpServletResponse postResponse = new FakeHttpServletResponse();
     servlet.doPost(request.asHttpServletRequest(), postResponse.asHttpServletResponse());
     assertThat(postResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
 
-    FakeResponse putResponse = new FakeResponse();
+    FakeHttpServletResponse putResponse = new FakeHttpServletResponse();
     servlet.doPut(request.asHttpServletRequest(), putResponse.asHttpServletResponse());
     assertThat(putResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
 
-    FakeResponse deleteResponse = new FakeResponse();
+    FakeHttpServletResponse deleteResponse = new FakeHttpServletResponse();
     servlet.doDelete(request.asHttpServletRequest(), deleteResponse.asHttpServletResponse());
     assertThat(deleteResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
   }

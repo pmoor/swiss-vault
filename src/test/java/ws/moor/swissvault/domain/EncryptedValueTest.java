@@ -437,6 +437,130 @@ public class EncryptedValueTest {
         new EncryptedValue(EncryptionAlgorithm.AES_256_GCM, validIv, tooLarge, validSig));
   }
 
+  @Test
+  public void testFromJsonObject_withFieldName_valid() {
+    JsonObject parent = new JsonObject();
+    parent.add("name", createValidJsonObject());
+
+    EncryptedValue ev = EncryptedValue.fromJsonObject(parent, "name");
+    assertThat(ev).isNotNull();
+    assertThat(ev.getAlgorithm()).isEqualTo(ALGORITHM);
+  }
+
+  @Test
+  public void testFromJsonObject_withFieldName_nullParent() {
+    assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(null, "name"));
+  }
+
+  @Test
+  public void testFromJsonObject_withFieldName_missingField() {
+    JsonObject parent = new JsonObject();
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parent, "name"));
+    assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: name");
+  }
+
+  @Test
+  public void testFromJsonObject_withFieldName_jsonNull() {
+    JsonObject parent = new JsonObject();
+    parent.add("name", JsonNull.INSTANCE);
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parent, "name"));
+    assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: name");
+  }
+
+  @Test
+  public void testFromJsonObject_withFieldName_wrongTypes() {
+    // Number primitive
+    JsonObject parentWithInt = new JsonObject();
+    parentWithInt.addProperty("name", 123);
+    IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parentWithInt, "name"));
+    assertThat(ex1).hasMessageThat().isEqualTo("missing or invalid field: name");
+
+    // String primitive
+    JsonObject parentWithString = new JsonObject();
+    parentWithString.addProperty("name", "not-an-object");
+    IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parentWithString, "name"));
+    assertThat(ex2).hasMessageThat().isEqualTo("missing or invalid field: name");
+
+    // Boolean primitive
+    JsonObject parentWithBool = new JsonObject();
+    parentWithBool.addProperty("name", true);
+    IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parentWithBool, "name"));
+    assertThat(ex3).hasMessageThat().isEqualTo("missing or invalid field: name");
+
+    // Array
+    JsonObject parentWithArray = new JsonObject();
+    parentWithArray.add("name", new JsonArray());
+    IllegalArgumentException ex4 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonObject(parentWithArray, "name"));
+    assertThat(ex4).hasMessageThat().isEqualTo("missing or invalid field: name");
+  }
+
+  @Test
+  public void testFromJsonArray_withFieldName_valid() {
+    JsonArray encryptions = new JsonArray();
+    encryptions.add(createValidJsonObject());
+
+    JsonObject parent = new JsonObject();
+    parent.add("encryptions", encryptions);
+
+    List<EncryptedValue> list = EncryptedValue.fromJsonArray(parent, "encryptions");
+    assertThat(list).hasSize(1);
+    assertThat(list.get(0).getAlgorithm()).isEqualTo(ALGORITHM);
+  }
+
+  @Test
+  public void testFromJsonArray_withFieldName_nullParent() {
+    assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(null, "encryptions"));
+  }
+
+  @Test
+  public void testFromJsonArray_withFieldName_missingField() {
+    JsonObject parent = new JsonObject();
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(parent, "encryptions"));
+    assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: encryptions");
+  }
+
+  @Test
+  public void testFromJsonArray_withFieldName_jsonNull() {
+    JsonObject parent = new JsonObject();
+    parent.add("encryptions", JsonNull.INSTANCE);
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(parent, "encryptions"));
+    assertThat(ex).hasMessageThat().isEqualTo("missing or invalid field: encryptions");
+  }
+
+  @Test
+  public void testFromJsonArray_withFieldName_wrongTypes() {
+    // String primitive
+    JsonObject parentWithString = new JsonObject();
+    parentWithString.addProperty("encryptions", "bad");
+    IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(parentWithString, "encryptions"));
+    assertThat(ex1).hasMessageThat().isEqualTo("missing or invalid field: encryptions");
+
+    // Number primitive
+    JsonObject parentWithInt = new JsonObject();
+    parentWithInt.addProperty("encryptions", 123);
+    IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(parentWithInt, "encryptions"));
+    assertThat(ex2).hasMessageThat().isEqualTo("missing or invalid field: encryptions");
+
+    // Object instead of array
+    JsonObject parentWithObject = new JsonObject();
+    parentWithObject.add("encryptions", new JsonObject());
+    IllegalArgumentException ex3 = assertThrows(IllegalArgumentException.class, () ->
+        EncryptedValue.fromJsonArray(parentWithObject, "encryptions"));
+    assertThat(ex3).hasMessageThat().isEqualTo("missing or invalid field: encryptions");
+  }
+
   private static JsonObject createValidJsonObject() {
     EncryptedValue ev = new EncryptedValue(ALGORITHM, VALID_IV, VALID_CIPHERTEXT, VALID_SIGNATURE);
     return ev.toJsonObject();

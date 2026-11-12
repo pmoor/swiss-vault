@@ -35,8 +35,8 @@ public class SecretRepository {
   }
 
   public DbSecret newSecret(Transaction transaction, long keyId, JsonObject json) {
-    EncryptedValue name = EncryptedValue.fromJsonObject(json.getAsJsonObject("name"));
-    EncryptedValue description = EncryptedValue.fromJsonObject(json.getAsJsonObject("description"));
+    EncryptedValue name = EncryptedValue.fromJsonObject(json, "name");
+    EncryptedValue description = EncryptedValue.fromJsonObject(json, "description");
 
     DbSecret dbSecret = DbSecret.newDbSecret(keyId, name, description);
     ds.put(transaction, dbSecret.entity);
@@ -60,8 +60,8 @@ public class SecretRepository {
   }
 
   public DbSecretProperty newSecretProperty(Transaction transaction, DbSecret secret, JsonObject json) {
-    EncryptedValue name = EncryptedValue.fromJsonObject(json.getAsJsonObject("name"));
-    EncryptedValue value = EncryptedValue.fromJsonObject(json.getAsJsonObject("value"));
+    EncryptedValue name = EncryptedValue.fromJsonObject(json, "name");
+    EncryptedValue value = EncryptedValue.fromJsonObject(json, "value");
 
     DbSecretProperty dbSecretProperty = DbSecretProperty.newDbSecret(secret.entity.getKey(), name, value);
     ds.put(transaction, dbSecretProperty.entity);

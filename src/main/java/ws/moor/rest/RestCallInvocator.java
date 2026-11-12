@@ -115,8 +115,7 @@ class RestCallInvocator {
         response.sendError(HttpServletResponse.SC_NOT_FOUND, cause.getMessage());
       } else if (cause instanceof IllegalArgumentException
           || cause instanceof JsonParseException
-          || cause instanceof IllegalStateException
-          || cause instanceof ClassCastException) {
+          || cause instanceof IllegalStateException) {
         response.sendError(HttpServletResponse.SC_BAD_REQUEST, cause.getMessage());
       } else {
         Throwables.throwIfUnchecked(cause);
