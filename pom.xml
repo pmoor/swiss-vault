@@ -156,7 +156,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <id>jar-stripped-appengine-api</id>
@@ -276,7 +276,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.7.2-jre</version>
+            <version>33.8.0-jre</version>
         </dependency>
 
         <dependency>
