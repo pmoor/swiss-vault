@@ -20,19 +20,16 @@ import com.google.gson.JsonParser;
 import org.junit.Before;
 import org.junit.Test;
 import ws.moor.swissvault.util.UriBuilder;
+import ws.moor.testing.FakeHttpServletRequest;
+import ws.moor.testing.FakeHttpServletResponse;
 
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.lang.reflect.Proxy;
 import java.net.http.HttpClient;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -58,12 +55,12 @@ public class OAuthCallbackServletTest {
 
   @Test
   public void testMissingStateParameterReturns400() throws Exception {
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "valid_code"),
-        new Cookie[]{new Cookie("oauth_state", "HOME:1234567890abcdef1234567890abcdef")});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withCookies(new Cookie("oauth_state", "HOME:1234567890abcdef1234567890abcdef"));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(resp.redirectLocation).isNull();
@@ -73,12 +70,12 @@ public class OAuthCallbackServletTest {
 
   @Test
   public void testMissingCookieReturns400() throws Exception {
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "valid_code", "state", "HOME:1234567890abcdef1234567890abcdef"),
-        null);
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withParameter("state", "HOME:1234567890abcdef1234567890abcdef");
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(resp.redirectLocation).isNull();
@@ -87,12 +84,13 @@ public class OAuthCallbackServletTest {
 
   @Test
   public void testMismatchedStateReturns400() throws Exception {
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "valid_code", "state", "HOME:1234567890abcdef1234567890abcdef"),
-        new Cookie[]{new Cookie("oauth_state", "HOME:othernonce1234567890abcdef")});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withParameter("state", "HOME:1234567890abcdef1234567890abcdef")
+        .withCookies(new Cookie("oauth_state", "HOME:othernonce1234567890abcdef"));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(resp.redirectLocation).isNull();
@@ -101,13 +99,13 @@ public class OAuthCallbackServletTest {
 
   @Test
   public void testLegacyStaticStateReturns400() throws Exception {
-    // Attack scenario: /oauth2callback?code=attacker_code&state=HOME
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "attacker_code", "state", "HOME"),
-        new Cookie[]{new Cookie("oauth_state", "HOME")});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "attacker_code")
+        .withParameter("state", "HOME")
+        .withCookies(new Cookie("oauth_state", "HOME"));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(resp.redirectLocation).isNull();
@@ -117,12 +115,12 @@ public class OAuthCallbackServletTest {
   @Test
   public void testMissingCodeReturns400() throws Exception {
     String state = stateHelper.createStateValue(OAuthState.HOME);
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("state", state),
-        new Cookie[]{new Cookie("oauth_state", state)});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("state", state)
+        .withCookies(new Cookie("oauth_state", state));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(resp.redirectLocation).isNull();
@@ -132,18 +130,18 @@ public class OAuthCallbackServletTest {
   @Test
   public void testSuccessfulCallbackForHome() throws Exception {
     String state = stateHelper.createStateValue(OAuthState.HOME);
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "valid_code", "state", state),
-        new Cookie[]{new Cookie("oauth_state", state)});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withParameter("state", state)
+        .withCookies(new Cookie("oauth_state", state));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isNull();
     assertThat(resp.redirectLocation).isEqualTo("http://localhost:8080/");
     assertThat(authHelper.determineUserIdCalled.get()).isTrue();
 
-    // Verify cookies: state cookie cleared, auth cookie set
     List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
     assertThat(setCookies).hasSize(2);
     assertThat(setCookies.get(0)).isEqualTo("oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax");
@@ -151,14 +149,58 @@ public class OAuthCallbackServletTest {
   }
 
   @Test
+  public void testFailedDetermineUserIdReturns502BadGateway() throws Exception {
+    String state = stateHelper.createStateValue(OAuthState.HOME);
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "invalid_code")
+        .withParameter("state", state)
+        .withCookies(new Cookie("oauth_state", state));
+
+    servlet.doGet(req.asRequest(), resp.asResponse());
+
+    assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_BAD_GATEWAY);
+    assertThat(resp.errorMessage).isEqualTo("Failed to verify authorization code");
+    assertThat(resp.redirectLocation).isNull();
+    assertThat(authHelper.determineUserIdCalled.get()).isTrue();
+  }
+
+  @Test
+  public void testSuccessfulCallbackSecureCookies() throws Exception {
+    OAuthStateHelper secureStateHelper = new OAuthStateHelper(true);
+    AuthCookieFactory secureCookieFactory = new AuthCookieFactory(true, HMAC_KEY, Clock.systemUTC());
+    OAuthCallbackServlet secureServlet = new OAuthCallbackServlet(
+        authHelper, secureStateHelper, secureCookieFactory, uriBuilder);
+
+    String state = secureStateHelper.createStateValue(OAuthState.HOME);
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withParameter("state", state)
+        .withCookies(new Cookie("__Host-oauth_state", state));
+
+    secureServlet.doGet(req.asRequest(), resp.asResponse());
+
+    assertThat(resp.errorCode).isNull();
+    assertThat(resp.redirectLocation).isEqualTo("http://localhost:8080/");
+
+    List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
+    assertThat(setCookies).hasSize(2);
+    assertThat(setCookies.get(0)).isEqualTo("__Host-oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure");
+    assertThat(setCookies.get(1)).startsWith("__Host-auth=user-123:");
+    assertThat(setCookies.get(1)).endsWith("; Secure");
+  }
+
+  @Test
   public void testSuccessfulCallbackForCliLogin() throws Exception {
     String state = stateHelper.createStateValue(OAuthState.CLI_LOGIN);
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(
-        Map.of("code", "valid_code", "state", state),
-        new Cookie[]{new Cookie("oauth_state", state)});
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest()
+        .withParameter("code", "valid_code")
+        .withParameter("state", state)
+        .withCookies(new Cookie("oauth_state", state));
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isNull();
     assertThat(resp.redirectLocation).isEqualTo("http://localhost:8080/cli-login");
@@ -185,54 +227,5 @@ public class OAuthCallbackServletTest {
       }
       throw new IOException("invalid code");
     }
-  }
-
-  private static class FakeResponse {
-    Integer errorCode;
-    String errorMessage;
-    String redirectLocation;
-    final Map<String, List<String>> headers = new HashMap<>();
-
-    HttpServletResponse asHttpServletResponse() {
-      return (HttpServletResponse) Proxy.newProxyInstance(
-          HttpServletResponse.class.getClassLoader(),
-          new Class<?>[]{HttpServletResponse.class},
-          (proxy, method, args) -> {
-            String name = method.getName();
-            if ("sendError".equals(name)) {
-              errorCode = (Integer) args[0];
-              if (args.length > 1) {
-                errorMessage = (String) args[1];
-              }
-              return null;
-            } else if ("sendRedirect".equals(name)) {
-              redirectLocation = (String) args[0];
-              return null;
-            } else if ("addHeader".equals(name)) {
-              headers.computeIfAbsent((String) args[0], k -> new ArrayList<>()).add((String) args[1]);
-              return null;
-            }
-            return null;
-          });
-    }
-  }
-
-  private static HttpServletRequest createFakeRequest(Map<String, String> params, Cookie[] cookies) {
-    Map<String, String> nonNullParams = params != null ? params : new HashMap<>();
-    return (HttpServletRequest) Proxy.newProxyInstance(
-        HttpServletRequest.class.getClassLoader(),
-        new Class<?>[]{HttpServletRequest.class},
-        (proxy, method, args) -> {
-          if ("getParameter".equals(method.getName())) {
-            return nonNullParams.get(args[0]);
-          } else if ("getCookies".equals(method.getName())) {
-            return cookies;
-          }
-          return null;
-        });
-  }
-
-  private void doGet(HttpServletRequest req, FakeResponse resp) throws IOException {
-    servlet.doGet(req, resp.asHttpServletResponse());
   }
 }

@@ -18,19 +18,13 @@ package ws.moor.swissvault.auth;
 import com.google.common.net.HttpHeaders;
 import org.junit.Before;
 import org.junit.Test;
+import ws.moor.testing.FakeHttpServletRequest;
+import ws.moor.testing.FakeHttpServletResponse;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.lang.reflect.Proxy;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -50,16 +44,16 @@ public class LogoutServletTest {
   @Test
   public void testLogoutClearsCookieAndRendersLoggedOutPage() throws IOException {
     LogoutServlet servlet = new LogoutServlet(insecureFactory);
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest();
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest();
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
     assertThat(setCookies).containsExactly("auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
     assertThat(resp.contentType).isEqualTo("text/html; charset=UTF-8");
 
-    String html = resp.getOutput();
+    String html = resp.getBody();
     assertThat(html).contains("<title>Swiss Vault - Logged Out</title>");
     assertThat(html).contains("<h2>Logged Out</h2>");
     assertThat(html).contains("<p>You have been logged out of Swiss Vault.</p>");
@@ -69,54 +63,16 @@ public class LogoutServletTest {
   @Test
   public void testLogoutWithSecureOnlySetsSecureFlag() throws IOException {
     LogoutServlet servlet = new LogoutServlet(secureFactory);
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest();
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest();
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     List<String> setCookies = resp.headers.get(HttpHeaders.SET_COOKIE);
-    assertThat(setCookies).containsExactly("auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
+    assertThat(setCookies).containsExactly("__Host-auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure");
     assertThat(resp.contentType).isEqualTo("text/html; charset=UTF-8");
 
-    String html = resp.getOutput();
+    String html = resp.getBody();
     assertThat(html).contains("<a href=\"/\">Log in again</a>");
-  }
-
-  private static HttpServletRequest createFakeRequest() {
-    return (HttpServletRequest) Proxy.newProxyInstance(
-        HttpServletRequest.class.getClassLoader(),
-        new Class<?>[]{HttpServletRequest.class},
-        (proxy, method, args) -> null);
-  }
-
-  private static class FakeResponse {
-    String contentType;
-    final Map<String, List<String>> headers = new HashMap<>();
-    final StringWriter stringWriter = new StringWriter();
-    final PrintWriter printWriter = new PrintWriter(stringWriter);
-
-    HttpServletResponse asHttpServletResponse() {
-      return (HttpServletResponse) Proxy.newProxyInstance(
-          HttpServletResponse.class.getClassLoader(),
-          new Class<?>[]{HttpServletResponse.class},
-          (proxy, method, args) -> {
-            String name = method.getName();
-            if ("addHeader".equals(name)) {
-              headers.computeIfAbsent((String) args[0], k -> new ArrayList<>()).add((String) args[1]);
-              return null;
-            } else if ("setContentType".equals(name)) {
-              contentType = (String) args[0];
-              return null;
-            } else if ("getWriter".equals(name)) {
-              return printWriter;
-            }
-            return null;
-          });
-    }
-
-    String getOutput() {
-      printWriter.flush();
-      return stringWriter.toString();
-    }
   }
 }

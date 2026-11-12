@@ -35,10 +35,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class OAuthStateHelper {
 
   public static final String COOKIE_NAME = "oauth_state";
+  public static final String SECURE_COOKIE_NAME = "__Host-oauth_state";
   public static final Duration COOKIE_EXPIRATION = Duration.ofMinutes(10);
   private static final int NONCE_BYTE_COUNT = 32;
 
   private final boolean secureOnly;
+  private final String cookieName;
   private final SecureRandom secureRandom;
 
   @Inject
@@ -48,7 +50,12 @@ public class OAuthStateHelper {
 
   OAuthStateHelper(boolean secureOnly, SecureRandom secureRandom) {
     this.secureOnly = secureOnly;
+    this.cookieName = secureOnly ? SECURE_COOKIE_NAME : COOKIE_NAME;
     this.secureRandom = checkNotNull(secureRandom);
+  }
+
+  public String getCookieName() {
+    return cookieName;
   }
 
   public String createStateValue(OAuthState state) {
@@ -62,7 +69,7 @@ public class OAuthStateHelper {
   public String createCookieHeader(String stateValue) {
     checkNotNull(stateValue);
     String header = String.format("%s=%s; Max-Age=%d; Path=/; HttpOnly; SameSite=Lax",
-        COOKIE_NAME, stateValue, COOKIE_EXPIRATION.getSeconds());
+        cookieName, stateValue, COOKIE_EXPIRATION.getSeconds());
     if (secureOnly) {
       header += "; Secure";
     }
@@ -70,11 +77,19 @@ public class OAuthStateHelper {
   }
 
   public String createClearCookieHeader() {
-    String header = String.format("%s=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax", COOKIE_NAME);
+    String header = String.format("%s=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax", cookieName);
     if (secureOnly) {
       header += "; Secure";
     }
     return header;
+  }
+
+  public String clearStateCookie() {
+    return createClearCookieHeader();
+  }
+
+  public Optional<OAuthState> verifyState(HttpServletRequest request) {
+    return validateAndExtractState(request);
   }
 
   public Optional<OAuthState> validateAndExtractState(HttpServletRequest request) {
@@ -94,7 +109,7 @@ public class OAuthStateHelper {
     }
 
     for (Cookie cookie : cookies) {
-      if (COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null) {
+      if (cookieName.equals(cookie.getName()) && cookie.getValue() != null) {
         if (MessageDigest.isEqual(
             stateParam.getBytes(StandardCharsets.UTF_8),
             cookie.getValue().getBytes(StandardCharsets.UTF_8))) {

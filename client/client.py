@@ -54,11 +54,18 @@ def _get_cookie_file_path(server_url: str) -> str:
   return os.path.join(config_dir, f"cookie_{host_slug}")
 
 
+def _strip_auth_prefix(cookie_value: str) -> str:
+  cookie_clean = cookie_value.strip()
+  if cookie_clean.startswith("__Host-auth="):
+    return cookie_clean[len("__Host-auth="):]
+  if cookie_clean.startswith("auth="):
+    return cookie_clean[len("auth="):]
+  return cookie_clean
+
+
 def save_cached_cookie(server_url: str, cookie_value: str) -> None:
   path = _get_cookie_file_path(server_url)
-  cookie_clean = cookie_value.strip()
-  if cookie_clean.startswith("auth="):
-    cookie_clean = cookie_clean[len("auth="):]
+  cookie_clean = _strip_auth_prefix(cookie_value)
   flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
   with open(os.open(path, flags, 0o600), "w", encoding="utf-8") as f:
     f.write(cookie_clean)
@@ -69,7 +76,7 @@ def load_cached_cookie(server_url: str) -> Optional[str]:
   if os.path.exists(path):
     try:
       with open(path, "r", encoding="utf-8") as f:
-        cookie = f.read().strip()
+        cookie = _strip_auth_prefix(f.read())
         if cookie:
           return cookie
     except OSError:
@@ -125,8 +132,7 @@ def login(server_url: str = DEFAULT_SERVER,
   if not cookie_value:
     raise AuthenticationError("No token entered. Login cancelled.")
 
-  if cookie_value.startswith("auth="):
-    cookie_value = cookie_value[len("auth="):]
+  cookie_value = _strip_auth_prefix(cookie_value)
 
   save_cached_cookie(server_url, cookie_value)
   print("Login successful!")
@@ -164,11 +170,11 @@ class AuthenticatedConnection:
     if not self._cookie:
       self._cookie = login(server_url=self._server_url)
 
-    if self._cookie.startswith("auth="):
-      self._cookie = self._cookie[len("auth="):]
+    self._cookie = _strip_auth_prefix(self._cookie)
 
+    cookie_name = "__Host-auth" if self._scheme == "https" else "auth"
     self._headers = {
-      "Cookie": f"auth={self._cookie}",
+      "Cookie": f"{cookie_name}={self._cookie}",
       "Content-Type": "application/json",
     }
     self._connection = self._create_connection()
@@ -192,8 +198,9 @@ class AuthenticatedConnection:
       if response.status in (401, 403):
         if attempt == 0 and not os.environ.get("SWISSVAULT_NONINTERACTIVE"):
           print("\nAuthentication expired or rejected. Initiating login...")
-          self._cookie = login(self._server_url)
-          self._headers["Cookie"] = f"auth={self._cookie}"
+          self._cookie = _strip_auth_prefix(login(self._server_url))
+          cookie_name = "__Host-auth" if self._scheme == "https" else "auth"
+          self._headers["Cookie"] = f"{cookie_name}={self._cookie}"
           self._connection = self._create_connection()
           continue
         raise AuthenticationError(f"Authentication failed ({response.status}): {content}")

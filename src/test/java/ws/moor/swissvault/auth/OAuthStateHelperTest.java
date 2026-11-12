@@ -59,7 +59,7 @@ public class OAuthStateHelperTest {
 
     String secureCookieHeader = helperSecure.createCookieHeader("HOME:1234567890abcdef1234567890abcdef");
     assertThat(secureCookieHeader).isEqualTo(
-        "oauth_state=HOME:1234567890abcdef1234567890abcdef; Max-Age=600; Path=/; HttpOnly; SameSite=Lax; Secure");
+        "__Host-oauth_state=HOME:1234567890abcdef1234567890abcdef; Max-Age=600; Path=/; HttpOnly; SameSite=Lax; Secure");
   }
 
   @Test
@@ -68,7 +68,7 @@ public class OAuthStateHelperTest {
     assertThat(clearHeader).isEqualTo("oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax");
 
     String secureClearHeader = helperSecure.createClearCookieHeader();
-    assertThat(secureClearHeader).isEqualTo("oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure");
+    assertThat(secureClearHeader).isEqualTo("__Host-oauth_state=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure");
   }
 
   @Test
@@ -189,6 +189,41 @@ public class OAuthStateHelperTest {
     Optional<OAuthState> extracted = helperInsecure.validateAndExtractState(req);
     assertThat(extracted.isPresent()).isTrue();
     assertThat(extracted.get()).isEqualTo(OAuthState.HOME);
+  }
+
+  @Test
+  public void testValidateMultipleCookiesSecureWithShadowCookie() {
+    String validState = helperSecure.createStateValue(OAuthState.HOME);
+    HttpServletRequest req = createFakeRequest(
+        Map.of("state", validState),
+        new Cookie[]{
+            new Cookie("other", "foo"),
+            new Cookie("__Host-oauth_state", "HOME:oldnonce1234567890abcdef"),
+            new Cookie("__Host-oauth_state", validState)
+        });
+    Optional<OAuthState> extracted = helperSecure.validateAndExtractState(req);
+    assertThat(extracted.isPresent()).isTrue();
+    assertThat(extracted.get()).isEqualTo(OAuthState.HOME);
+  }
+
+  @Test
+  public void testSecureStateHelperIgnoresInsecureCookie() {
+    String validState = helperSecure.createStateValue(OAuthState.HOME);
+    HttpServletRequest req = createFakeRequest(
+        Map.of("state", validState),
+        new Cookie[]{new Cookie("oauth_state", validState)});
+    Optional<OAuthState> extracted = helperSecure.validateAndExtractState(req);
+    assertThat(extracted.isPresent()).isFalse();
+  }
+
+  @Test
+  public void testInsecureStateHelperIgnoresSecureCookie() {
+    String validState = helperInsecure.createStateValue(OAuthState.HOME);
+    HttpServletRequest req = createFakeRequest(
+        Map.of("state", validState),
+        new Cookie[]{new Cookie("__Host-oauth_state", validState)});
+    Optional<OAuthState> extracted = helperInsecure.validateAndExtractState(req);
+    assertThat(extracted.isPresent()).isFalse();
   }
 
   private static HttpServletRequest createFakeRequest(Map<String, String> params, Cookie[] cookies) {

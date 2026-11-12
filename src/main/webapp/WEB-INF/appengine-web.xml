@@ -28,9 +28,13 @@
       <!-- always revalidate: mixing cached and fresh modules after a deploy would break the client -->
       <include path="/css/**">
           <http-header name="Cache-Control" value="no-cache"/>
+          <http-header name="X-Content-Type-Options" value="nosniff"/>
+          <http-header name="Strict-Transport-Security" value="max-age=31536000; includeSubDomains"/>
       </include>
       <include path="/js/**">
           <http-header name="Cache-Control" value="no-cache"/>
+          <http-header name="X-Content-Type-Options" value="nosniff"/>
+          <http-header name="Strict-Transport-Security" value="max-age=31536000; includeSubDomains"/>
       </include>
   </static-files>
 </appengine-web-app>
