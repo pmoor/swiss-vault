@@ -139,6 +139,11 @@ public class ClientTest {
     page.navigate(DevServer.BASE_URL + "/");
     button(unlock("my passphrase"), "Create new key...").click();
     Locator newKey = dialog("New Key");
+    assertFormHygiene(newKey.locator("form"));
+    assertInputHygiene(newKey.locator("input[name=name]"));
+    assertInputHygiene(newKey.locator("input[name=description]"));
+    assertSensitiveInputHygiene(newKey.locator("input[name=passphrase1]"));
+    assertSensitiveInputHygiene(newKey.locator("input[name=passphrase2]"));
     newKey.locator("input[name=name]").fill("Vault");
     newKey.locator("input[name=description]").fill("für alles");
     newKey.locator("input[name=passphrase1]").fill("my passphrase");
@@ -148,6 +153,8 @@ public class ClientTest {
     button(keyItem(unlock("my passphrase"), "Vault"), "select").click();
     button(page, "new secret").click();
     Locator secret = page.locator(".secretListItem").last();
+    assertInputHygiene(secret.locator("input.secretNameEdit"));
+    assertInputHygiene(secret.locator("input.secretDescriptionEdit"));
     secret.locator("input.secretNameEdit").fill("Bank");
     secret.locator("input.secretDescriptionEdit").fill("online banking");
     button(secret, "save").click();
@@ -201,6 +208,8 @@ public class ClientTest {
     Locator mail = page.locator(".secretListItem").nth(1);
     assertThat(mail.locator("div.secretName")).hasText("Mail");
     button(mail, "edit").click();
+    assertInputHygiene(mail.locator("input.secretNameEdit"));
+    assertInputHygiene(mail.locator("input.secretDescriptionEdit"));
     mail.locator("input.secretNameEdit").fill("E-Mail");
     button(mail, "save").click();
     assertThat(mail.locator("div.secretName")).hasText("E-Mail");
@@ -208,6 +217,8 @@ public class ClientTest {
     expandProperties(mail, 2);
     Locator password = propertyItem(mail, "password");
     button(password, "edit").click();
+    assertInputHygiene(password.locator("input.propertyNameEdit"));
+    assertSensitiveInputHygiene(password.locator("input.propertyValueEdit"));
     password.locator("input.propertyValueEdit").fill("new password");
     button(password, "save property").click();
     assertThat(password.locator("div.propertyValue")).hasText("new password");
@@ -233,9 +244,11 @@ public class ClientTest {
     page.navigate(DevServer.BASE_URL + "/");
     button(keyItem(unlock("other passphrase"), "Work"), "edit").click();
     Locator editKey = dialog("Edit Key");
+    assertSensitiveInputHygiene(editKey.locator("input[name=passphrase]"));
     editKey.locator("input[name=passphrase]").fill("other passphrase");
     button(editKey, "try").click();
     assertThat(editKey.locator("li.encryption-used")).hasText("Encryption #0 (legacy)");
+    assertSensitiveInputHygiene(editKey.locator("input[name=new-passphrase]"));
     editKey.locator("input[name=new-passphrase]").fill("new passphrase");
     button(editKey, "add").click();
     assertThat(editKey.locator("li")).hasCount(2);
@@ -351,6 +364,7 @@ public class ClientTest {
     importLegacyData();
     openKey("correct horse battery staple", "Family");
     Locator search = page.getByRole(AriaRole.SEARCHBOX, new Page.GetByRoleOptions().setName("Search secrets"));
+    assertInputHygiene(search);
     assertThat(search).isFocused();
     Locator visibleNames = page.locator(".secretListItem:visible div.secretName");
 
@@ -386,6 +400,7 @@ public class ClientTest {
     button(password, "generate").click();
     Locator generator = dialog("Generate Password");
     assertThat(generator).isVisible();
+    assertFormHygiene(generator.locator("form"));
 
     // Check default length is 12 and slider is 12
     Locator lengthSlider = generator.locator("input[type=range]");
@@ -398,6 +413,7 @@ public class ClientTest {
 
     // Check generated password is 12 characters and alphanumeric (no special characters)
     Locator passwordInput = generator.locator("input.generatedPassword");
+    assertSensitiveInputHygiene(passwordInput);
     String initialPassword = passwordInput.inputValue();
     assertThat(initialPassword).matches("^[A-Za-z0-9]{12}$");
 
@@ -513,6 +529,8 @@ public class ClientTest {
 
   private Locator unlock(String passphrase) {
     Locator dialog = dialog("Enter Passphrase");
+    assertFormHygiene(dialog.locator("form"));
+    assertSensitiveInputHygiene(dialog.locator("input[name=passphrase]"));
     dialog.locator("input[name=passphrase]").fill(passphrase);
     dialog.locator("input[type=submit]").click();
     return dialog("Secret Keys");
@@ -550,6 +568,8 @@ public class ClientTest {
 
   private static void addProperty(Locator secret, int index, String name, String value) {
     Locator property = secret.locator("li.propertyListItem").nth(index);
+    assertInputHygiene(property.locator("input.propertyNameEdit"));
+    assertSensitiveInputHygiene(property.locator("input.propertyValueEdit"));
     property.locator("input.propertyNameEdit").fill(name);
     property.locator("input.propertyValueEdit").fill(value);
     button(property, "save property").click();
@@ -614,5 +634,99 @@ public class ClientTest {
 
   private static String string(JsonObject object, String field) {
     return object.get(field).getAsString();
+  }
+
+  private static void assertInputHygiene(Locator input) {
+    assertThat(input).hasAttribute("autocomplete", "off");
+    assertThat(input).hasAttribute("autocorrect", "off");
+    assertThat(input).hasAttribute("autocapitalize", "off");
+    assertThat(input).hasAttribute("spellcheck", "false");
+  }
+
+  private static void assertSensitiveInputHygiene(Locator input) {
+    assertInputHygiene(input);
+    assertThat(input).hasAttribute("data-1p-ignore", "");
+    assertThat(input).hasAttribute("data-lpignore", "true");
+  }
+
+  private static void assertFormHygiene(Locator form) {
+    assertThat(form).hasAttribute("autocomplete", "off");
+  }
+
+  @Test
+  public void verifiesInputHygieneAcrossAllDialogsAndPanes() throws Exception {
+    page.navigate(DevServer.BASE_URL + "/");
+
+    // 1. Unlock passphrase dialog
+    Locator unlockDialog = dialog("Enter Passphrase");
+    assertFormHygiene(unlockDialog.locator("form"));
+    assertSensitiveInputHygiene(unlockDialog.locator("input[name=passphrase]"));
+
+    // 2. Create key dialog
+    button(unlock("hygiene-passphrase"), "Create new key...").click();
+    Locator createDialog = dialog("New Key");
+    assertFormHygiene(createDialog.locator("form"));
+    assertInputHygiene(createDialog.locator("input[name=name]"));
+    assertInputHygiene(createDialog.locator("input[name=description]"));
+    assertSensitiveInputHygiene(createDialog.locator("input[name=passphrase1]"));
+    assertSensitiveInputHygiene(createDialog.locator("input[name=passphrase2]"));
+
+    createDialog.locator("input[name=name]").fill("Hygiene Vault");
+    createDialog.locator("input[name=description]").fill("Testing input hygiene");
+    createDialog.locator("input[name=passphrase1]").fill("hygiene-passphrase");
+    createDialog.locator("input[name=passphrase2]").fill("hygiene-passphrase");
+    createDialog.locator("input[type=submit]").click();
+
+    // 3. Edit key dialog
+    Locator keys = unlock("hygiene-passphrase");
+    button(keyItem(keys, "Hygiene Vault"), "edit").click();
+    Locator editDialog = dialog("Edit Key");
+    assertSensitiveInputHygiene(editDialog.locator("input[name=passphrase]"));
+    editDialog.locator("input[name=passphrase]").fill("hygiene-passphrase");
+    button(editDialog, "try").click();
+    assertSensitiveInputHygiene(editDialog.locator("input[name=new-passphrase]"));
+    button(editDialog, "done").click();
+
+    // 4. Search input & Secret pane
+    keys = unlock("hygiene-passphrase");
+    button(keyItem(keys, "Hygiene Vault"), "select").click();
+    Locator search = page.getByRole(AriaRole.SEARCHBOX, new Page.GetByRoleOptions().setName("Search secrets"));
+    assertThat(search).isVisible();
+    assertInputHygiene(search);
+
+    button(page, "new secret").click();
+    Locator secret = page.locator(".secretListItem").last();
+    assertInputHygiene(secret.locator("input.secretNameEdit"));
+    assertInputHygiene(secret.locator("input.secretDescriptionEdit"));
+    secret.locator("input.secretNameEdit").fill("Secret Name");
+    secret.locator("input.secretDescriptionEdit").fill("Secret Description");
+    button(secret, "save").click();
+
+    // Also verify when editing an existing secret
+    button(secret, "edit").click();
+    assertInputHygiene(secret.locator("input.secretNameEdit"));
+    assertInputHygiene(secret.locator("input.secretDescriptionEdit"));
+    button(secret, "save").click();
+
+    // 5. Property pane
+    button(secret, "+").click();
+    Locator property = secret.locator("li.propertyListItem").first();
+    assertInputHygiene(property.locator("input.propertyNameEdit"));
+    assertSensitiveInputHygiene(property.locator("input.propertyValueEdit"));
+    property.locator("input.propertyNameEdit").fill("Property Name");
+    property.locator("input.propertyValueEdit").fill("Property Value");
+    button(property, "save property").click();
+
+    // Also verify when editing an existing property
+    button(property, "edit").click();
+    assertInputHygiene(property.locator("input.propertyNameEdit"));
+    assertSensitiveInputHygiene(property.locator("input.propertyValueEdit"));
+
+    // 6. Password generator dialog
+    button(property, "generate").click();
+    Locator generatorDialog = dialog("Generate Password");
+    assertFormHygiene(generatorDialog.locator("form"));
+    assertSensitiveInputHygiene(generatorDialog.locator("input.generatedPassword"));
+    button(generatorDialog, "cancel").click();
   }
 }

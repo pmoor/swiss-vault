@@ -33,6 +33,55 @@ export function h(tag, attributes = {}, ...children) {
 }
 
 /**
+ * Creates an input element with hygiene attributes disabled (autocomplete, autocorrect,
+ * autocapitalize, spellcheck).
+ *
+ * @param {Record<string, string>} [attributes]
+ * @returns {HTMLInputElement}
+ */
+export function textInput(attributes = {}) {
+  return h('input', {
+    type: 'text',
+    autocomplete: 'off',
+    autocorrect: 'off',
+    autocapitalize: 'off',
+    spellcheck: 'false',
+    ...attributes,
+  });
+}
+
+/**
+ * Creates an input element for sensitive data with hygiene attributes and password manager
+ * ignore attributes set (autocomplete, autocorrect, autocapitalize, spellcheck, data-1p-ignore, data-lpignore).
+ *
+ * @param {Record<string, string>} [attributes]
+ * @returns {HTMLInputElement}
+ */
+export function secretInput(attributes = {}) {
+  return h('input', {
+    type: 'password',
+    autocomplete: 'off',
+    autocorrect: 'off',
+    autocapitalize: 'off',
+    spellcheck: 'false',
+    'data-1p-ignore': '',
+    'data-lpignore': 'true',
+    ...attributes,
+  });
+}
+
+/**
+ * Creates a form element with autocomplete disabled by default.
+ *
+ * @param {Record<string, string>} [attributes]
+ * @param {...(Node | string)} children
+ * @returns {HTMLFormElement}
+ */
+export function form(attributes = {}, ...children) {
+  return h('form', {autocomplete: 'off', ...attributes}, ...children);
+}
+
+/**
  * A button that is disabled while the promise returned by its action is pending, so it cannot be
  * triggered twice by accident.
  *

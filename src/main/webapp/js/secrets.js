@@ -16,7 +16,7 @@
 
 import * as api from './api.js';
 import {generatePassword, showExport} from './dialogs.js';
-import {button, h} from './dom.js';
+import {button, h, secretInput, textInput} from './dom.js';
 
 /** @typedef {import('./key.js').Key} Key */
 /** @typedef {{id: string, name: string, description: string}} Secret decrypted */
@@ -39,7 +39,12 @@ export async function showSecrets(key) {
   const list = h('ul', {class: 'secretList'}, ...panes.map(pane => pane.element));
 
   // hides the secrets whose name and description do not contain every word typed
-  const search = h('input', {type: 'search', class: 'search', placeholder: 'Search', 'aria-label': 'Search secrets'});
+  const search = textInput({
+    type: 'search',
+    class: 'search',
+    placeholder: 'Search',
+    'aria-label': 'Search secrets',
+  });
   const filter = () => {
     const words = search.value.toLocaleLowerCase().split(/\s+/).filter(word => word);
     for (const pane of panes) {
@@ -84,8 +89,8 @@ class SecretPane {
     this.readOnlyFields = h('div', {class: 'secretTitle'},
         this.name, ' ', this.description, ' ', button('edit', () => this.showEditableFields(), 'button'));
 
-    this.nameInput = h('input', {type: 'text', class: 'secretName secretNameEdit'});
-    this.descriptionInput = h('input', {type: 'text', class: 'secretDescription secretDescriptionEdit'});
+    this.nameInput = textInput({class: 'secretName secretNameEdit'});
+    this.descriptionInput = textInput({class: 'secretDescription secretDescriptionEdit'});
     this.editableFields = h('div', {class: 'secretTitle'},
         this.nameInput, this.descriptionInput, button('save', () => this.save(), 'button'));
 
@@ -204,8 +209,8 @@ class PropertyPane {
     this.readOnlyFields = h('div', {},
         this.name, ' ', this.value, ' ', button('edit', () => this.showEditableFields(), 'button'));
 
-    this.nameInput = h('input', {type: 'text', class: 'propertyName propertyNameEdit'});
-    this.valueInput = h('input', {type: 'text', class: 'propertyValue propertyValueEdit'});
+    this.nameInput = textInput({class: 'propertyName propertyNameEdit'});
+    this.valueInput = secretInput({type: 'text', class: 'propertyValue propertyValueEdit'});
     this.generateButton = button('generate', async () => {
       const password = await generatePassword();
       if (password !== null) {
