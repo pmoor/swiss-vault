@@ -16,31 +16,21 @@
 
 import * as api from './api.js';
 import {generateRandomPassword, isLegacyEncryption} from './crypto.js';
-import {Dialog, button, h} from './dom.js';
+import {Dialog, button, form, h, secretInput, textInput} from './dom.js';
 import {Key} from './key.js';
 
 /** @returns {Promise<string>} */
 export function askPassphrase() {
   return new Promise(resolve => {
     const dialog = new Dialog('Enter Passphrase');
-    const input = h('input', {
-      type: 'password',
-      size: '24',
-      name: 'passphrase',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      'data-1p-ignore': '',
-      'data-lpignore': 'true',
-    });
-    const form = h('form', {autocomplete: 'off'}, input, h('input', {type: 'submit', value: 'OK'}));
-    form.addEventListener('submit', event => {
+    const input = secretInput({size: '24', name: 'passphrase'});
+    const formElement = form({}, input, h('input', {type: 'submit', value: 'OK'}));
+    formElement.addEventListener('submit', event => {
       event.preventDefault();
       dialog.close();
       resolve(input.value);
     });
-    dialog.content.append(form);
+    dialog.content.append(formElement);
     dialog.show();
     input.focus();
   });
@@ -92,47 +82,11 @@ export function createKey() {
   return new Promise(resolve => {
     const dialog = new Dialog('New Key');
     const error = h('div', {class: 'error'});
-    const name = h('input', {
-      type: 'text',
-      size: '24',
-      name: 'name',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-    });
-    const description = h('input', {
-      type: 'text',
-      size: '24',
-      name: 'description',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-    });
-    const passphrase1 = h('input', {
-      type: 'password',
-      size: '24',
-      name: 'passphrase1',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      'data-1p-ignore': '',
-      'data-lpignore': 'true',
-    });
-    const passphrase2 = h('input', {
-      type: 'password',
-      size: '24',
-      name: 'passphrase2',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      'data-1p-ignore': '',
-      'data-lpignore': 'true',
-    });
-    const form = h('form', {autocomplete: 'off'},
+    const name = textInput({size: '24', name: 'name'});
+    const description = textInput({size: '24', name: 'description'});
+    const passphrase1 = secretInput({size: '24', name: 'passphrase1'});
+    const passphrase2 = secretInput({size: '24', name: 'passphrase2'});
+    const formElement = form({},
         h('label', {}, 'Name', name), h('br'),
         h('label', {}, 'Description', description), h('br'),
         h('label', {}, 'Passphrase', passphrase1), h('br'),
@@ -142,7 +96,7 @@ export function createKey() {
           dialog.close();
           resolve(null);
         }, 'dialog-button'));
-    form.addEventListener('submit', async event => {
+    formElement.addEventListener('submit', async event => {
       event.preventDefault();
       if (passphrase1.value !== passphrase2.value || passphrase1.value.length < 1) {
         error.textContent = 'passphrases do not match';
@@ -154,7 +108,7 @@ export function createKey() {
         resolve(key);
       }
     });
-    dialog.content.append(error, form);
+    dialog.content.append(error, formElement);
     dialog.show();
     name.focus();
   });
@@ -171,17 +125,7 @@ export function editKey(key) {
     const dialog = new Dialog('Edit Key');
     // remembered so the key can be unlocked again after saving changes
     let passphrase = '';
-    const passphraseInput = h('input', {
-      type: 'password',
-      size: '24',
-      name: 'passphrase',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      'data-1p-ignore': '',
-      'data-lpignore': 'true',
-    });
+    const passphraseInput = secretInput({size: '24', name: 'passphrase'});
     const encryptionList = h('ul');
     const newEncryptionArea = h('div');
 
@@ -212,17 +156,7 @@ export function editKey(key) {
 
       newEncryptionArea.replaceChildren();
       if (key.isUnlocked()) {
-        const newPassphrase = h('input', {
-          type: 'password',
-          size: '24',
-          name: 'new-passphrase',
-          autocomplete: 'off',
-          autocorrect: 'off',
-          autocapitalize: 'off',
-          spellcheck: 'false',
-          'data-1p-ignore': '',
-          'data-lpignore': 'true',
-        });
+        const newPassphrase = secretInput({size: '24', name: 'new-passphrase'});
         newEncryptionArea.append(h('label', {}, 'Add Passphrase', newPassphrase), button('add', () => {
           const value = newPassphrase.value;
           newPassphrase.value = '';
@@ -296,19 +230,13 @@ export async function showExport(key) {
 export function generatePassword() {
   return new Promise(resolve => {
     const dialog = new Dialog('Generate Password');
-    const passwordInput = h('input', {
+    const passwordInput = secretInput({
       type: 'text',
       size: '24',
       name: 'password',
       readonly: '',
       class: 'generatedPassword',
       'aria-label': 'Generated password',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      'data-1p-ignore': '',
-      'data-lpignore': 'true',
     });
     const lengthDisplay = h('span', {class: 'lengthDisplay'}, '12');
     const lengthSlider = h('input', {
@@ -333,7 +261,7 @@ export function generatePassword() {
     });
     specialCheckbox.addEventListener('change', update);
 
-    const form = h('form', {autocomplete: 'off'},
+    const formElement = form({},
         h('div', {class: 'generatorRow'}, passwordInput, ' ', button('regenerate', update, 'dialog-button')),
         h('div', {class: 'generatorRow'}, h('label', {}, 'Length: ', lengthDisplay, h('br'), lengthSlider)),
         h('div', {class: 'generatorRow'}, h('label', {}, specialCheckbox, ' Special characters')),
@@ -344,13 +272,13 @@ export function generatePassword() {
               resolve(null);
             }, 'dialog-button')));
 
-    form.addEventListener('submit', event => {
+    formElement.addEventListener('submit', event => {
       event.preventDefault();
       dialog.close();
       resolve(passwordInput.value);
     });
 
-    dialog.content.append(form);
+    dialog.content.append(formElement);
     update();
     dialog.show();
     passwordInput.focus();
