@@ -22,22 +22,17 @@ import com.google.inject.util.Providers;
 import org.junit.Before;
 import org.junit.Test;
 import ws.moor.swissvault.util.UriBuilder;
+import ws.moor.testing.FakeHttpServletRequest;
+import ws.moor.testing.FakeHttpServletResponse;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.CharArrayWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Proxy;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -67,10 +62,10 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.absent()), fixedClock);
 
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(Map.of(), Map.of());
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest();
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.redirectLocation).isNotNull();
     assertThat(resp.redirectLocation).startsWith("https://accounts.google.com/o/oauth2/v2/auth");
@@ -91,17 +86,17 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.of(user)), fixedClock);
 
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(Map.of(), Map.of());
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest();
 
-    servlet.doGet(req, resp.asHttpServletResponse());
+    servlet.doGet(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isNull();
     assertThat(resp.redirectLocation).isNull();
     assertThat(resp.headers.get(HttpHeaders.CACHE_CONTROL)).contains("no-store");
     assertThat(resp.headers.get(HttpHeaders.CONTENT_SECURITY_POLICY)).contains(EXPECTED_CSP);
 
-    String body = resp.writerOutput.toString();
+    String body = resp.getBody();
     assertThat(body).contains("<h2>CLI Authentication</h2>");
     assertThat(body).contains("Logged in as user-alice");
     assertThat(body).contains("<form method=\"post\" action=\"/cli-login\">");
@@ -117,9 +112,9 @@ public class CliLoginServletTest {
 
     String[] blockedSites = {"cross-site", "same-site", "none", "CROSS-SITE", "invalid"};
     for (String site : blockedSites) {
-      FakeResponse resp = new FakeResponse();
-      HttpServletRequest req = createFakeRequest(Map.of("Sec-Fetch-Site", site), Map.of());
-      servlet.doPost(req, resp.asHttpServletResponse());
+      FakeHttpServletResponse resp = new FakeHttpServletResponse();
+      FakeHttpServletRequest req = new FakeHttpServletRequest().withHeader("Sec-Fetch-Site", site);
+      servlet.doPost(req.asRequest(), resp.asResponse());
       assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_FORBIDDEN);
     }
   }
@@ -129,9 +124,9 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.absent()), fixedClock);
 
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(Map.of("Sec-Fetch-Site", "same-origin"), Map.of());
-    servlet.doPost(req, resp.asHttpServletResponse());
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest().withHeader("Sec-Fetch-Site", "same-origin");
+    servlet.doPost(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isEqualTo(HttpServletResponse.SC_FORBIDDEN);
   }
@@ -142,15 +137,15 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.of(user)), fixedClock);
 
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(Map.of("Sec-Fetch-Site", "same-origin"), Map.of());
-    servlet.doPost(req, resp.asHttpServletResponse());
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest().withHeader("Sec-Fetch-Site", "same-origin");
+    servlet.doPost(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isNull();
     assertThat(resp.headers.get(HttpHeaders.CACHE_CONTROL)).contains("no-store");
     assertThat(resp.headers.get(HttpHeaders.CONTENT_SECURITY_POLICY)).contains(EXPECTED_CSP);
 
-    String body = resp.writerOutput.toString();
+    String body = resp.getBody();
     assertThat(body).contains("<h2>CLI Authentication Token</h2>");
     assertThat(body).contains("Logged in as user-bob");
     assertThat(body).contains("<textarea readonly rows=\"4\" cols=\"80\">");
@@ -165,12 +160,12 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.of(user)), fixedClock);
 
-    FakeResponse resp = new FakeResponse();
-    HttpServletRequest req = createFakeRequest(Map.of(), Map.of()); // No Sec-Fetch-Site header
-    servlet.doPost(req, resp.asHttpServletResponse());
+    FakeHttpServletResponse resp = new FakeHttpServletResponse();
+    FakeHttpServletRequest req = new FakeHttpServletRequest(); // No Sec-Fetch-Site header
+    servlet.doPost(req.asRequest(), resp.asResponse());
 
     assertThat(resp.errorCode).isNull();
-    String body = resp.writerOutput.toString();
+    String body = resp.getBody();
     assertThat(body).contains("<textarea readonly rows=\"4\" cols=\"80\">");
     assertThat(body).contains("user-carol:");
   }
@@ -181,71 +176,14 @@ public class CliLoginServletTest {
     CliLoginServlet servlet = new CliLoginServlet(
         authHelper, stateHelper, cookieFactory, Providers.of(Optional.of(xssUser)), fixedClock);
 
-    FakeResponse respGet = new FakeResponse();
-    servlet.doGet(createFakeRequest(Map.of(), Map.of()), respGet.asHttpServletResponse());
-    assertThat(respGet.writerOutput.toString()).doesNotContain("<script>");
-    assertThat(respGet.writerOutput.toString()).contains("&lt;script&gt;alert(1)&lt;/script&gt;&amp;&quot;&#39;");
+    FakeHttpServletResponse respGet = new FakeHttpServletResponse();
+    servlet.doGet(new FakeHttpServletRequest().asRequest(), respGet.asResponse());
+    assertThat(respGet.getBody()).doesNotContain("<script>");
+    assertThat(respGet.getBody()).contains("&lt;script&gt;alert(1)&lt;/script&gt;&amp;&quot;&#39;");
 
-    FakeResponse respPost = new FakeResponse();
-    servlet.doPost(createFakeRequest(Map.of("Sec-Fetch-Site", "same-origin"), Map.of()), respPost.asHttpServletResponse());
-    assertThat(respPost.writerOutput.toString()).doesNotContain("<script>");
-    assertThat(respPost.writerOutput.toString()).contains("&lt;script&gt;alert(1)&lt;/script&gt;&amp;&quot;&#39;");
-  }
-
-  private static class FakeResponse {
-    Integer errorCode;
-    String errorMessage;
-    String redirectLocation;
-    final Map<String, List<String>> headers = new HashMap<>();
-    final CharArrayWriter writerOutput = new CharArrayWriter();
-
-    HttpServletResponse asHttpServletResponse() {
-      return (HttpServletResponse) Proxy.newProxyInstance(
-          HttpServletResponse.class.getClassLoader(),
-          new Class<?>[]{HttpServletResponse.class},
-          (proxy, method, args) -> {
-            String name = method.getName();
-            if ("sendError".equals(name)) {
-              errorCode = (Integer) args[0];
-              if (args.length > 1) {
-                errorMessage = (String) args[1];
-              }
-              return null;
-            } else if ("sendRedirect".equals(name)) {
-              redirectLocation = (String) args[0];
-              return null;
-            } else if ("setHeader".equals(name)) {
-              List<String> list = new ArrayList<>();
-              list.add((String) args[1]);
-              headers.put((String) args[0], list);
-              return null;
-            } else if ("addHeader".equals(name)) {
-              headers.computeIfAbsent((String) args[0], k -> new ArrayList<>()).add((String) args[1]);
-              return null;
-            } else if ("getWriter".equals(name)) {
-              return new PrintWriter(writerOutput);
-            } else if ("setContentType".equals(name)) {
-              return null;
-            }
-            return null;
-          });
-    }
-  }
-
-  private static HttpServletRequest createFakeRequest(Map<String, String> headers, Map<String, String> params) {
-    return (HttpServletRequest) Proxy.newProxyInstance(
-        HttpServletRequest.class.getClassLoader(),
-        new Class<?>[]{HttpServletRequest.class},
-        (proxy, method, args) -> {
-          String name = method.getName();
-          if ("getHeader".equals(name)) {
-            return headers.get(args[0]);
-          } else if ("getParameter".equals(name)) {
-            return params.get(args[0]);
-          } else if ("getCookies".equals(name)) {
-            return null;
-          }
-          return null;
-        });
+    FakeHttpServletResponse respPost = new FakeHttpServletResponse();
+    servlet.doPost(new FakeHttpServletRequest().withHeader("Sec-Fetch-Site", "same-origin").asRequest(), respPost.asResponse());
+    assertThat(respPost.getBody()).doesNotContain("<script>");
+    assertThat(respPost.getBody()).contains("&lt;script&gt;alert(1)&lt;/script&gt;&amp;&quot;&#39;");
   }
 }
