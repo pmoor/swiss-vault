@@ -17,14 +17,22 @@ package ws.moor.rest;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+import ws.moor.rest.RestServletModule.ActionMatcher;
 import ws.moor.rest.RestServletModule.FilterMatcher;
+import ws.moor.rest.RestServletModule.RestServlet;
+import ws.moor.rest.annotations.Delete;
 import ws.moor.rest.annotations.FilterAnnotation;
 import ws.moor.rest.annotations.Get;
+import ws.moor.rest.annotations.Post;
+import ws.moor.rest.annotations.Put;
 
+import javax.servlet.http.HttpServletResponse;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import ws.moor.testing.FakeHttpServletRequest;
+import ws.moor.testing.FakeHttpServletResponse;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -69,6 +77,15 @@ public class RestServletModuleTest {
   @AnnotationB
   @Get(path = "/annotated-ab")
   private static class AnnotatedWithABAction implements RestAction {}
+
+  @Post(path = "/post")
+  private static class PostAction implements RestAction {}
+
+  @Put(path = "/put")
+  private static class PutAction implements RestAction {}
+
+  @Delete(path = "/delete")
+  private static class DeleteAction implements RestAction {}
 
   @Test
   public void testFilterMatcherWithNoAnnotationsAppliesToAllActions() {
@@ -117,6 +134,69 @@ public class RestServletModuleTest {
     assertThat(abMatcher.applies(AnnotatedWithAAction.class)).isFalse();
     assertThat(abMatcher.applies(AnnotatedWithBAction.class)).isFalse();
     assertThat(abMatcher.applies(AnnotatedWithABAction.class)).isTrue();
+  }
+
+  @Test
+  public void testActionMatcherWithNullPathReturnsNull() {
+    ActionMatcher matcher = new ActionMatcher(Verb.GET, "/unannotated", UnannotatedAction.class);
+    assertThat(matcher.match(Verb.GET, null)).isNull();
+    assertThat(matcher.match(Verb.POST, null)).isNull();
+  }
+
+  @Test
+  public void testRestServletDoGetWithNullPathInfoReturns404() throws Exception {
+    ActionMatcher matcher = new ActionMatcher(Verb.GET, "/unannotated", UnannotatedAction.class);
+    RestServlet servlet = new RestServlet(ImmutableList.of(matcher), () -> {
+      throw new AssertionError("invocator should not be called when pathInfo is null");
+    });
+
+    FakeHttpServletRequest request = new FakeHttpServletRequest("GET", null);
+    FakeHttpServletResponse response = new FakeHttpServletResponse();
+
+    servlet.doGet(request.asHttpServletRequest(), response.asHttpServletResponse());
+
+    assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void testRestServletAllVerbsWithNullPathInfoReturns404() throws Exception {
+    ActionMatcher getMatcher = new ActionMatcher(Verb.GET, "/unannotated", UnannotatedAction.class);
+    ActionMatcher postMatcher = new ActionMatcher(Verb.POST, "/post", PostAction.class);
+    ActionMatcher putMatcher = new ActionMatcher(Verb.PUT, "/put", PutAction.class);
+    ActionMatcher deleteMatcher = new ActionMatcher(Verb.DELETE, "/delete", DeleteAction.class);
+
+    RestServlet servlet = new RestServlet(
+        ImmutableList.of(getMatcher, postMatcher, putMatcher, deleteMatcher),
+        () -> {
+          throw new AssertionError("invocator should not be called when pathInfo is null");
+        });
+
+    FakeHttpServletRequest request = new FakeHttpServletRequest("GET", null);
+
+    FakeHttpServletResponse getResponse = new FakeHttpServletResponse();
+    servlet.doGet(request.asHttpServletRequest(), getResponse.asHttpServletResponse());
+    assertThat(getResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
+
+    FakeHttpServletResponse postResponse = new FakeHttpServletResponse();
+    servlet.doPost(request.asHttpServletRequest(), postResponse.asHttpServletResponse());
+    assertThat(postResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
+
+    FakeHttpServletResponse putResponse = new FakeHttpServletResponse();
+    servlet.doPut(request.asHttpServletRequest(), putResponse.asHttpServletResponse());
+    assertThat(putResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
+
+    FakeHttpServletResponse deleteResponse = new FakeHttpServletResponse();
+    servlet.doDelete(request.asHttpServletRequest(), deleteResponse.asHttpServletResponse());
+    assertThat(deleteResponse.errorCode).isEqualTo(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void testRestServletModuleGetActionMatcher() {
+    TestModule module = new TestModule("/api/*");
+    ActionMatcher matcher = module.getActionMatcher(UnannotatedAction.class);
+    assertThat(matcher).isNotNull();
+    assertThat(matcher.match(Verb.GET, null)).isNull();
+    assertThat(matcher.match(Verb.GET, "/unannotated")).isNotNull();
   }
 
   private static class TestModule extends RestServletModule {

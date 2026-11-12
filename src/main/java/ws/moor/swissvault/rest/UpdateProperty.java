@@ -57,10 +57,10 @@ public class UpdateProperty implements RestAction {
     DbSecretProperty property = secretRepository.getProperty(transaction, keyId, secretId, propertyId);
     
     if (json.has("name")) {
-      property.setName(EncryptedValue.fromJsonObject(json.getAsJsonObject("name")));
+      property.setName(EncryptedValue.fromJsonObject(json, "name"));
     }
     if (json.has("value")) {
-      property.setValue(EncryptedValue.fromJsonObject(json.getAsJsonObject("value")));
+      property.setValue(EncryptedValue.fromJsonObject(json, "value"));
     }
     
     secretRepository.update(transaction, property);

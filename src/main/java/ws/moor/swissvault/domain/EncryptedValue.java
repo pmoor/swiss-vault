@@ -115,6 +115,16 @@ public class EncryptedValue {
     return object;
   }
 
+  public static EncryptedValue fromJsonObject(JsonObject parent, String fieldName) {
+    checkArgument(parent != null, "parent cannot be null");
+    JsonElement element = parent.get(fieldName);
+    checkArgument(
+        element != null && element.isJsonObject(),
+        "missing or invalid field: %s",
+        fieldName);
+    return fromJsonObject(element.getAsJsonObject());
+  }
+
   public static EncryptedValue fromJsonObject(JsonObject json) {
     checkArgument(json != null, "missing encrypted value");
     checkPrimitiveField(json, "version");
@@ -180,6 +190,16 @@ public class EncryptedValue {
       result.add(fromText(text));
     }
     return result;
+  }
+
+  public static List<EncryptedValue> fromJsonArray(JsonObject parent, String fieldName) {
+    checkArgument(parent != null, "parent cannot be null");
+    JsonElement element = parent.get(fieldName);
+    checkArgument(
+        element != null && element.isJsonArray(),
+        "missing or invalid field: %s",
+        fieldName);
+    return fromJsonArray(element.getAsJsonArray());
   }
 
   public static List<EncryptedValue> fromJsonArray(JsonArray encryptions) {

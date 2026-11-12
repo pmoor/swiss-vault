@@ -236,6 +236,13 @@ public class RestCallInvocatorTest {
     }
   }
 
+  public static class ThrowingClassCastAction implements RestAction {
+    @Execute
+    public void execute() {
+      throw new ClassCastException("cannot cast JsonPrimitive to JsonObject");
+    }
+  }
+
   public static class ThrowingNullPointerAction implements RestAction {
     @Execute
     public void execute() {
@@ -488,6 +495,25 @@ public class RestCallInvocatorTest {
 
     assertThat(response.errorCode).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
     assertThat(response.errorMessage).isEqualTo("illegal state in action");
+  }
+
+  @Test
+  public void testClassCastExceptionRollsBackTransactionAndRethrows() {
+    FakeRequest request = new FakeRequest();
+    FakeResponse response = new FakeResponse();
+    FakeTransaction transaction = new FakeTransaction();
+    request.attributes.put(Key.get(Transaction.class).toString(), transaction);
+
+    RestCallInvocator invocator = createInvocator(
+        ThrowingClassCastAction.class,
+        ImmutableList.of(TransactionFilter.class),
+        request,
+        response);
+
+    ClassCastException thrown = assertThrows(ClassCastException.class, invocator::invoke);
+    assertThat(thrown).hasMessageThat().isEqualTo("cannot cast JsonPrimitive to JsonObject");
+    assertThat(transaction.rolledBack).isTrue();
+    assertThat(transaction.isActive()).isFalse();
   }
 
   @Test
