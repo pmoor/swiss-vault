@@ -29,7 +29,7 @@ import com.google.inject.Provides;
 import com.google.inject.servlet.RequestScoped;
 import ws.moor.rest.annotations.RequestBody;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;

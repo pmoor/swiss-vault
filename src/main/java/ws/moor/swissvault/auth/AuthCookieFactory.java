@@ -22,8 +22,8 @@ import ws.moor.swissvault.config.Config;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.time.Clock;

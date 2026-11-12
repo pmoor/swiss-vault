@@ -21,7 +21,7 @@ import org.junit.Test;
 import ws.moor.rest.RestAction;
 import ws.moor.swissvault.domain.PermissionDeniedException;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;

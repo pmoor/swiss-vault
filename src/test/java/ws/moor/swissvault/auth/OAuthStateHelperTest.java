@@ -18,8 +18,8 @@ package ws.moor.swissvault.auth;
 import com.google.common.base.Optional;
 import org.junit.Test;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Proxy;
 import java.security.SecureRandom;
 import java.util.HashMap;

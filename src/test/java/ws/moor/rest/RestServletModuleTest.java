@@ -26,7 +26,7 @@ import ws.moor.rest.annotations.Get;
 import ws.moor.rest.annotations.Post;
 import ws.moor.rest.annotations.Put;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

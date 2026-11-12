@@ -23,7 +23,7 @@ import ws.moor.rest.annotations.PreFilter;
 import ws.moor.swissvault.config.Config;
 import ws.moor.swissvault.domain.PermissionDeniedException;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class AuthenticationFilter implements RestFilter {
 

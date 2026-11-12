@@ -21,7 +21,3 @@ updates:
       maven:
         patterns:
           - "*"
-    ignore:
-      # Guice 7+ drops javax.servlet in favor of jakarta.servlet (see appengine.use.EE8 in appengine-web.xml)
-      - dependency-name: "com.google.inject*"
-        update-types: ["version-update:semver-major"]
