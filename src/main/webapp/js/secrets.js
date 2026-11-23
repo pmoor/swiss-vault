@@ -55,6 +55,8 @@ export async function showSecrets(key) {
   // some browsers clear search fields on escape without an input event
   search.addEventListener('search', filter);
 
+  enableValueSelection(list);
+
   document.body.append(
       h('div', {class: 'searchBar'}, search, h('a', {href: '/logout', class: 'link'}, 'logout')),
       list,
@@ -269,5 +271,89 @@ class PropertyPane {
       throw new Error('property has not been saved yet');
     }
     return this.property;
+  }
+}
+
+/**
+ * Expands double-click (desktop) and long-press (touch) selections inside read-only property
+ * values to the surrounding non-whitespace characters, so passwords with symbols are selected whole.
+ *
+ * @param {HTMLElement} list
+ */
+function enableValueSelection(list) {
+  /** @type {HTMLDivElement | null} */
+  let pendingTouchTarget = null;
+
+  list.addEventListener('dblclick', event => {
+    if (event.target instanceof HTMLDivElement && event.target.classList.contains('propertyValue')) {
+      expandSelectionToNonWhitespace(event.target);
+    }
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'touch'
+        && event.target instanceof HTMLDivElement
+        && event.target.classList.contains('propertyValue')
+        && !hasSelectionIn(event.target)) {
+      pendingTouchTarget = event.target;
+    } else {
+      pendingTouchTarget = null;
+    }
+  });
+
+  document.addEventListener('selectionchange', () => {
+    if (pendingTouchTarget && hasSelectionIn(pendingTouchTarget)) {
+      const target = pendingTouchTarget;
+      pendingTouchTarget = null;
+      expandSelectionToNonWhitespace(target);
+    }
+  });
+}
+
+/**
+ * @param {HTMLElement} element
+ * @returns {boolean}
+ */
+function hasSelectionIn(element) {
+  const selection = window.getSelection();
+  return Boolean(selection && !selection.isCollapsed && selection.rangeCount > 0
+      && element.firstChild instanceof Text
+      && selection.getRangeAt(0).startContainer === element.firstChild);
+}
+
+/**
+ * @param {HTMLElement} element
+ */
+function expandSelectionToNonWhitespace(element) {
+  const node = element.firstChild;
+  const selection = window.getSelection();
+  if (!(node instanceof Text) || !selection || selection.rangeCount === 0) {
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  if (range.startContainer !== node) {
+    return;
+  }
+  const text = node.data;
+  let start = range.startOffset;
+  let end = range.endContainer === node ? range.endOffset : text.length;
+  // browsers may include adjacent whitespace (e.g. a trailing space on double-click)
+  while (start < end && /\s/.test(text[start])) {
+    start++;
+  }
+  while (end > start && /\s/.test(text[end - 1])) {
+    end--;
+  }
+  if (start === end) {
+    return;
+  }
+  while (start > 0 && !/\s/.test(text[start - 1])) {
+    start--;
+  }
+  while (end < text.length && !/\s/.test(text[end])) {
+    end++;
+  }
+  if (start !== range.startOffset || end !== range.endOffset || range.endContainer !== node) {
+    selection.setBaseAndExtent(node, start, node, end);
   }
 }

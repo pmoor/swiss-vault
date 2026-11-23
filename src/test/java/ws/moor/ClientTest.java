@@ -522,6 +522,86 @@ public class ClientTest {
     }
   }
 
+  @Test
+  public void doubleClickAndTouchSelectNonWhitespacePropertyValue() throws Exception {
+    importLegacyData();
+    openKey("correct horse battery staple", "Family");
+
+    Locator mail = secretItem("Mail");
+    expandProperties(mail, 2);
+    String value = "user: p@ss-w0rd!#1\tsec$ret/2";
+    Locator password = propertyItem(mail, "password");
+    button(password, "edit").click();
+    password.locator("input.propertyValueEdit").fill(value);
+    button(password, "save property").click();
+    Locator valueElement = password.locator("div.propertyValue");
+    assertThat(valueElement).hasText(value);
+
+    // double-clicking inside a token with symbols expands to whitespace boundaries
+    doubleClickSubstring(valueElement, "w0rd");
+    assertThat(selectedText()).isEqualTo("p@ss-w0rd!#1");
+
+    doubleClickSubstring(valueElement, "user");
+    assertThat(selectedText()).isEqualTo("user:");
+
+    doubleClickSubstring(valueElement, "ret");
+    assertThat(selectedText()).isEqualTo("sec$ret/2");
+
+    // manual mouse drag selection is not expanded
+    double[] w0rd = substringBox(valueElement, "w0rd");
+    page.mouse().move(w0rd[0], w0rd[1]);
+    page.mouse().down();
+    page.mouse().move(w0rd[2], w0rd[1]);
+    page.mouse().up();
+    assertThat(selectedText()).isEqualTo("w0rd");
+
+    // triple-click still selects the full line natively
+    page.mouse().click(w0rd[0], w0rd[1], new com.microsoft.playwright.Mouse.ClickOptions().setClickCount(3));
+    assertThat(selectedText().trim()).isEqualTo("password user: p@ss-w0rd!#1 sec$ret/2 edit");
+
+    // touch long-press expands the initial browser word selection once, then lets handle drags adjust it
+    page.evaluate("() => window.getSelection().removeAllRanges()");
+    valueElement.evaluate("el => {"
+        + "el.dispatchEvent(new PointerEvent('pointerdown', {pointerType: 'touch', bubbles: true}));"
+        + "const node = el.firstChild;"
+        + "const i = node.data.indexOf('w0rd');"
+        + "window.getSelection().setBaseAndExtent(node, i, node, i + 4);"
+        + "}");
+    assertThat(selectedText()).isEqualTo("p@ss-w0rd!#1");
+
+    // adjusting the selection afterwards (like dragging a selection handle) is not re-expanded
+    valueElement.evaluate("el => {"
+        + "const node = el.firstChild;"
+        + "const i = node.data.indexOf('w0rd');"
+        + "window.getSelection().setBaseAndExtent(node, i, node, i + 4);"
+        + "}");
+    assertThat(selectedText()).isEqualTo("w0rd");
+  }
+
+  private void doubleClickSubstring(Locator element, String substring) {
+    double[] box = substringBox(element, substring);
+    page.mouse().dblclick((box[0] + box[2]) / 2.0, box[1]);
+  }
+
+  /** Returns [left, centerY, right] of the first occurrence of substring in element's text node. */
+  private double[] substringBox(Locator element, String substring) {
+    @SuppressWarnings("unchecked")
+    List<Number> rect = (List<Number>) element.evaluate("(el, sub) => {"
+        + "const node = el.firstChild;"
+        + "const start = node.data.indexOf(sub);"
+        + "const range = document.createRange();"
+        + "range.setStart(node, start);"
+        + "range.setEnd(node, start + sub.length);"
+        + "const r = range.getBoundingClientRect();"
+        + "return [r.left, (r.top + r.bottom) / 2, r.right];"
+        + "}", substring);
+    return new double[] {rect.get(0).doubleValue(), rect.get(1).doubleValue(), rect.get(2).doubleValue()};
+  }
+
+  private String selectedText() {
+    return (String) page.evaluate("() => window.getSelection().toString()");
+  }
+
   private Locator dialog(String title) {
     return page.locator("dialog[open]").filter(new Locator.FilterOptions()
         .setHas(page.locator(".dialog-title").getByText(title, new Locator.GetByTextOptions().setExact(true))));
